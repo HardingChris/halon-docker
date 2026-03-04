@@ -1,6 +1,6 @@
 image:
-  repository: halon/bounce-classifier
-  pullPolicy: Never
+  repository: apprelaypoccontreg.azurecr.io/halon/bounce-classifier
+  pullPolicy: IfNotPresent
   # Overrides the image tag whose default is the chart appVersion.
   tag: ""
 

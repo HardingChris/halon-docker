@@ -1,6 +1,6 @@
 image:
-  repository: halon/sasid
-  pullPolicy: Never
+  repository: apprelaypoccontreg.azurecr.io/halon/sasid
+  pullPolicy: IfNotPresent
   # Overrides the image tag whose default is the chart appVersion.
   tag: ""
 

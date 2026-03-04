@@ -1,13 +1,13 @@
 image:
-  repository: halon/smtpd
-  pullPolicy: Never
+  repository: apprelaypoccontreg.azurecr.io/halon/smtpd
+  pullPolicy: IfNotPresent
   # Overrides the image tag whose default is the chart appVersion.
   tag: ""
 
 api:
   image:
-    repository: halon/api
-    pullPolicy: Never
+    repository: apprelaypoccontreg.azurecr.io/halon/api
+    pullPolicy: IfNotPresent
     # Overrides the image tag whose default is the chart appVersion.
     tag: "6.10.0"
   resources: {}

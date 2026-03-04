@@ -1,6 +1,6 @@
 image:
-  repository: halon/dlpd
-  pullPolicy: Never
+  repository: apprelaypoccontreg.azurecr.io/halon/dlpd
+  pullPolicy: IfNotPresent
   # Overrides the image tag whose default is the chart appVersion.
   tag: ""
 

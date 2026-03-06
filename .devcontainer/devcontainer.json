@@ -30,7 +30,9 @@
 	"customizations": {
 		"vscode": {
 			"extensions": [
-				"ms-kubernetes-tools.vscode-kubernetes-tools"
+				"ms-kubernetes-tools.vscode-kubernetes-tools",
+				"ms-vscode.vscode-node-azure-pack",
+				"eamodio.gitlens"
 			]
 		}
 	},

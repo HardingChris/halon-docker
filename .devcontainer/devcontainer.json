@@ -21,7 +21,7 @@
 	// "forwardPorts": [],
 
 	// Use 'postCreateCommand' to run commands after the container is created.
-	"postCreateCommand": "git config --global --add safe.directory ${containerWorkspaceFolder}",
+	"postCreateCommand": "git config --global --add safe.directory ${containerWorkspaceFolder} && curl -sL https://aka.ms/InstallAzureCLIDeb | bash && az aks install-cli",
 
 	// Use 'postStartCommand' to run commands after the container is created like starting minikube.
 	"postStartCommand": "minikube start --driver=docker && echo 'eval $(minikube docker-env)' >> ~/.bashrc",

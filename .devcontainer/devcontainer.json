@@ -3,7 +3,12 @@
 {
 	"name": "Kubernetes - Minikube-in-Docker",
 	// Or use a Dockerfile or Docker Compose file. More info: https://containers.dev/guide/dockerfile
-	"image": "mcr.microsoft.com/devcontainers/base:bullseye",
+	//"image": "mcr.microsoft.com/devcontainers/base:bullseye",
+
+	"build": {
+		"dockerfile": "Dockerfile"
+	},
+
 
 	"features": {
 		"ghcr.io/devcontainers/features/docker-in-docker:2": {
@@ -21,7 +26,7 @@
 	// "forwardPorts": [],
 
 	// Use 'postCreateCommand' to run commands after the container is created.
-	"postCreateCommand": "git config --global --add safe.directory ${containerWorkspaceFolder} && curl -sL https://aka.ms/InstallAzureCLIDeb | bash && az aks install-cli",
+	"postCreateCommand": "git config --global --add safe.directory ${containerWorkspaceFolder}",
 
 	// Use 'postStartCommand' to run commands after the container is created like starting minikube.
 	"postStartCommand": "minikube start --driver=docker && echo 'eval $(minikube docker-env)' >> ~/.bashrc",

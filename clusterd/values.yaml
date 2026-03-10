@@ -1,6 +1,6 @@
 image:
-  repository: apprelaypoccontreg.azurecr.io/halon/clusterd
-  pullPolicy: IfNotPresent
+  repository: halon/clusterd
+  pullPolicy: Never
   # Overrides the image tag whose default is the chart appVersion.
   tag: ""
 

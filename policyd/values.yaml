@@ -1,6 +1,6 @@
 image:
-  repository: apprelaypoccontreg.azurecr.io/halon/policyd
-  pullPolicy: IfNotPresent
+  repository: halon/policyd
+  pullPolicy: Never
   # Overrides the image tag whose default is the chart appVersion.
   tag: ""
 
@@ -41,3 +41,6 @@ nodeSelector: {}
 tolerations: []
 
 affinity: {}
+
+storage: 10Gi
+storageClassName: ""

@@ -1,13 +1,13 @@
 image:
-  repository: apprelaypoccontreg.azurecr.io/halon/rated
-  pullPolicy: IfNotPresent
+  repository: halon/rated
+  pullPolicy: Never
   # Overrides the image tag whose default is the chart appVersion.
   tag: ""
 
 api:
   image:
-    repository: apprelaypoccontreg.azurecr.io/halon/api
-    pullPolicy: IfNotPresent
+    repository: halon/api
+    pullPolicy: Never
     # Overrides the image tag whose default is the chart appVersion.
     tag: "6.10.0"
   resources: {}

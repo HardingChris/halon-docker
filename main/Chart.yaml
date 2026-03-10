@@ -6,31 +6,31 @@ version: 0.1.0
 dependencies:
   - name: clusterd
     version: 0.1.0
-    repository: "apprelaypoccontreg.azurecr.io/helm"
+    repository: "file://../clusterd"
   - name: policyd
     version: 0.1.0
-    repository: "apprelaypoccontreg.azurecr.io/helm"
+    repository: "file://../policyd"
   - name: dlpd
     version: 0.1.0
-    repository: "apprelaypoccontreg.azurecr.io/helm"
+    repository: "file://../dlpd"
   - name: rated
     version: 0.1.0
-    repository: "apprelaypoccontreg.azurecr.io/helm"
+    repository: "file://../rated"
   - name: sasid
     version: 0.1.0
-    repository: "apprelaypoccontreg.azurecr.io/helm"
+    repository: "file://../sasid"
   - name: savdid
     version: 0.1.0
-    repository: "apprelaypoccontreg.azurecr.io/helm"
+    repository: "file://../savdid"
   - name: expurgate
     version: 0.1.0
-    repository: "apprelaypoccontreg.azurecr.io/helm"
+    repository: "file://../expurgate"
   - name: smtpd
     version: 0.1.0
-    repository: "apprelaypoccontreg.azurecr.io/helm"
+    repository: "file://../smtpd"
   - name: web
     version: 0.1.0
-    repository: "apprelaypoccontreg.azurecr.io/helm"
+    repository: "file://../web"
   - name: classifier
     version: 0.1.0
-    repository: "apprelaypoccontreg.azurecr.io/helm"
+    repository: "file://../classifier"

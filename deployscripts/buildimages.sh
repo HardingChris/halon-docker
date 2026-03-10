@@ -5,7 +5,7 @@ set -eu
 COMPONENTS="api classifier clusterd dlpd expurgate policyd rated sasid savdid smtpd web"
 TARGET_DISTRO="rocky-9"
 PUSH_TO_ACR="true"
-ACR_NAME="apprelaypoccontreg"
+ACR_NAME="${ACR_NAME:-apprelaypoccontreg}"
 
 # Internal state (do not edit)
 RESOLVED_IMAGE_TAG=""
@@ -15,6 +15,12 @@ ACR_LOGIN_SERVER="${ACR_NAME:+$ACR_NAME.azurecr.io}"
 
 SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 REPO_ROOT=$(CDPATH= cd -- "$SCRIPT_DIR/.." && pwd)
+
+print_docker_daemon_info() {
+	daemon_name=$(docker info --format '{{.Name}}' 2>/dev/null || echo "unknown")
+	daemon_id=$(docker info --format '{{.ID}}' 2>/dev/null || echo "unknown")
+	echo "Using Docker daemon: name=$daemon_name id=$daemon_id"
+}
 
 restore_tty() {
 	stty echo 2>/dev/null || true
@@ -157,12 +163,47 @@ push_built_images_to_acr() {
 	done
 }
 
+verify_local_built_images() {
+	echo "Verifying local image tags"
+	printf '%s\n' "$BUILT_IMAGE_TAGS" | while IFS= read -r local_tag; do
+		if [ -z "$local_tag" ]; then
+			continue
+		fi
+
+		if docker image inspect "$local_tag" >/dev/null 2>&1; then
+			echo "  - found $local_tag"
+		else
+			echo "ERROR: Expected local image tag missing after build: $local_tag" >&2
+			return 1
+		fi
+	done
+}
+
+print_post_build_summary() {
+	echo
+	echo "Post-build summary"
+	echo "Local image tags:"
+	printf '%s\n' "$BUILT_IMAGE_TAGS" | while IFS= read -r local_tag; do
+		if [ -z "$local_tag" ]; then
+			continue
+		fi
+		echo "  - $local_tag"
+	done
+
+	if [ "$PUSH_TO_ACR" = "true" ]; then
+		echo "ACR image tags:"
+		printf '%s\n' "$BUILT_IMAGE_TAGS" | while IFS= read -r local_tag; do
+			if [ -z "$local_tag" ]; then
+				continue
+			fi
+			echo "  - $ACR_LOGIN_SERVER/$local_tag"
+		done
+	fi
+}
+
 prompt_repo_user
 prompt_repo_pass
-
-if ! setup_acr_push; then
-	exit 1
-fi
+print_docker_daemon_info
 
 for component in $COMPONENTS; do
 	component_dir="$REPO_ROOT/$component"
@@ -191,8 +232,19 @@ for component in $COMPONENTS; do
 	record_built_image "$image_tag"
 done
 
+if ! verify_local_built_images; then
+	exit 1
+fi
+
+if ! setup_acr_push; then
+	echo "ERROR: ACR setup failed. Local images were built, but push could not proceed." >&2
+	exit 1
+fi
+
 if ! push_built_images_to_acr; then
 	exit 1
 fi
+
+print_post_build_summary
 
 echo "All $TARGET_DISTRO image builds completed."

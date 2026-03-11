@@ -1,0 +1,62 @@
+# Local development overrides for Minikube.
+# This file is intended for use with deployscripts/install-minikube.sh.
+# Images are expected to be available locally and loaded into Minikube.
+
+clusterd:
+  image:
+    repository: halon/clusterd
+    pullPolicy: IfNotPresent
+
+policyd:
+  image:
+    repository: halon/policyd
+    pullPolicy: IfNotPresent
+
+dlpd:
+  image:
+    repository: halon/dlpd
+    pullPolicy: IfNotPresent
+
+rated:
+  image:
+    repository: halon/rated
+    pullPolicy: IfNotPresent
+  api:
+    image:
+      repository: halon/api
+      pullPolicy: IfNotPresent
+
+sasid:
+  image:
+    repository: halon/sasid
+    pullPolicy: IfNotPresent
+
+savdid:
+  image:
+    repository: halon/savdid
+    pullPolicy: IfNotPresent
+
+expurgate:
+  image:
+    repository: halon/expurgate
+    pullPolicy: IfNotPresent
+
+smtpd:
+  image:
+    repository: halon/smtpd
+    pullPolicy: IfNotPresent
+  api:
+    image:
+      repository: halon/api
+      pullPolicy: IfNotPresent
+
+web:
+  image:
+    repository: halon/web
+    pullPolicy: IfNotPresent
+
+classifier:
+  image:
+    repository: halon/bounce-classifier
+    pullPolicy: IfNotPresent
+

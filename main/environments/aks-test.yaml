@@ -54,8 +54,26 @@ web:
   image:
     repository: apprelaypoccontreg.azurecr.io/halon/web
     pullPolicy: IfNotPresent
+  users:
+    - username: admin
+      password: $2a$12$f0IGaULumWgwwBJc2U8BdOa/cgKRPipK9fHyE5PI0BzLmicxJl3Eq #update with bcrypt hash of admin PW: htpasswd -bnBC "" 'YourNewPassword' | tr -d ':\n'
 
 classifier:
   image:
     repository: apprelaypoccontreg.azurecr.io/halon/bounce-classifier
     pullPolicy: IfNotPresent
+
+# overrides for the smtpd and web services to make them available via load balancer in private VNET:
+global:
+  smtpd:
+    service:
+      type: LoadBalancer
+      annotations:
+        service.beta.kubernetes.io/azure-load-balancer-internal: "true"
+
+  web:
+    service:
+      type: LoadBalancer
+      annotations:
+        service.beta.kubernetes.io/azure-load-balancer-internal: "true"
+

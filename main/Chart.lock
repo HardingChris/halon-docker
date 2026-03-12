@@ -22,12 +22,12 @@ dependencies:
   version: 0.1.0
 - name: smtpd
   repository: file://../smtpd
-  version: 0.1.0
+  version: 0.1.1
 - name: web
   repository: file://../web
-  version: 0.1.0
+  version: 0.1.1
 - name: classifier
   repository: file://../classifier
   version: 0.1.0
-digest: sha256:c53116ef5f18e91507107ba1429edafa5140b8103a56f2c261002ed41228a880
-generated: "2025-09-16T11:29:57.552365252Z"
+digest: sha256:8b3418f23918249dd9d038bb8cef0b5e89b67474cccb77fbf9992690f7f33452
+generated: "2026-03-11T10:46:56.582227748Z"

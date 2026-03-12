@@ -5,6 +5,10 @@ metadata:
   name: {{ include "web.fullname" . }}
   labels:
     {{- include "web.labels" . | nindent 4 }}
+  {{- with .Values.global.web.service.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
 spec:
   type: {{ .Values.global.web.service.type }}
   ports:

@@ -5,6 +5,10 @@ metadata:
   name: {{ include "smtpd.fullname" . }}
   labels:
     {{- include "smtpd.labels" . | nindent 4 }}
+  {{- with .Values.global.smtpd.service.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
 spec:
   type: {{ .Values.global.smtpd.service.type }}
   ports:

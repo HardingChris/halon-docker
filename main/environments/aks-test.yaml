@@ -65,6 +65,10 @@ classifier:
 
 # overrides for the smtpd and web services to make them available via load balancer in private VNET:
 global:
+  elasticsearch:
+    enabled: true
+    url: https://elasticsearch-es-default.elastic-stack.svc.cluster.local:9200
+
   smtpd:
     service:
       type: LoadBalancer

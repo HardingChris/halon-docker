@@ -2,6 +2,11 @@
 # This file is intended for use with deployscripts/install-minikube.sh.
 # Images are expected to be available locally and loaded into Minikube.
 
+global:
+  elasticsearch:
+    enabled: true
+    url: https://elasticsearch-es-default.elastic-stack.svc.cluster.local:9200
+
 clusterd:
   image:
     repository: halon/clusterd

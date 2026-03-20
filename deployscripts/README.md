@@ -18,6 +18,24 @@ This script uses the helm chart and images from the remote OCI registry to insta
 
 By default this script installs or upgrades Elasticsearch (ECK operator + eck-stack) in the same cluster before installing the Halon chart. Set INSTALL_ELASTICSEARCH=false to skip this step.
 
+# uninstall-minikube.sh
+This script uninstalls the Halon release from a Minikube profile without requiring manual context switching. By default it also uninstalls Elasticsearch releases (eck-stack and eck-operator).
+
+Useful variables:
+- RELEASE_NAME (default halon)
+- NAMESPACE (default default)
+- MINIKUBE_PROFILE (default minikube)
+- UNINSTALL_ELASTICSEARCH (default true)
+
+# uninstall-aks.sh
+This script uninstalls the Halon release from an AKS context without requiring manual context switching. By default it also uninstalls Elasticsearch releases (eck-stack and eck-operator).
+
+Useful variables:
+- RELEASE_NAME (default halon)
+- NAMESPACE (default default)
+- TARGET_CONTEXT (default AppRelayPOC-aks)
+- UNINSTALL_ELASTICSEARCH (default true)
+
 # install-elasticsearch.sh
 This script installs or upgrades Elasticsearch by using the official Elastic Helm repository and deploys two Helm releases:
 - eck-operator in ELASTIC_OPERATOR_NAMESPACE (default elastic-system)

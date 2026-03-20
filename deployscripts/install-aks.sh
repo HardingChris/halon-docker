@@ -86,7 +86,7 @@ resolve_elasticsearch_password() {
         poll=5
     fi
 
-    echo "Waiting for Elasticsearch secret '$ELASTICSEARCH_SECRET_NAME' in namespace '$ELASTIC_STACK_NAMESPACE' (timeout ${timeout}s)"
+    echo "Waiting for Elasticsearch secret '$ELASTICSEARCH_SECRET_NAME' in namespace '$ELASTIC_STACK_NAMESPACE' (timeout ${timeout}s)" >&2
 
     elapsed=0
     while [ "$elapsed" -lt "$timeout" ]; do
@@ -103,7 +103,7 @@ resolve_elasticsearch_password() {
         elapsed=$((elapsed + poll))
     done
 
-    echo "WARNING: Timed out waiting for Elasticsearch secret '$ELASTICSEARCH_SECRET_NAME' in namespace '$ELASTIC_STACK_NAMESPACE'."
+    echo "WARNING: Timed out waiting for Elasticsearch secret '$ELASTICSEARCH_SECRET_NAME' in namespace '$ELASTIC_STACK_NAMESPACE'." >&2
     return 0
 }
 

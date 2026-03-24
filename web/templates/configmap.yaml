@@ -51,4 +51,919 @@ data:
       address: "{{ .Release.Name }}-policyd.{{ .Release.Namespace }}.svc.cluster.local"
       port: {{ .Values.global.policyd.service.port }}
     {{- end }}
+  web-history.yaml: |
+    version: "1.27"
+    mappings:
+      transaction:
+        id: _id
+      timestamp:
+        id: "@timestamp"
+      aggregations:
+        timestamp:
+          id: "@timestamp"
+      fields:
+        - id: "@timestamp"
+          label: Time
+          type: date
+          sortable: true
+        - id: received
+          label: Received At
+          type: date
+          sortable: true
+        - id: hostname
+          label: Hostname
+        - id: transactionid
+          label: Transaction ID
+        - id: queueid
+          label: Queue ID
+          sortable: true
+        - id: action
+          label: Action
+          sortable: true
+          values:
+            - value: delivered
+              label: DELIVER
+              color: "#00b300"
+              textColor: "fff"
+              format: badge
+            - value: removed
+              label: REMOVE
+              color: "#808080"
+              textColor: "fff"
+              format: badge
+            - value: deferred
+              label: DEFER
+              color: "#ffbf00"
+              textColor: "000"
+              format: badge
+            - value: bounced
+              label: BOUNCE
+              color: "#f20d0d"
+              textColor: "fff"
+              format: badge
+        - id: localip
+          label: Local IP
+          type: ip
+          sortable: true
+          policy:
+            field: localips
+        - id: senderdomain
+          label: Sender Domain
+          type: keyword
+          sortable: true
+        - id: senderlocalpart
+          label: Sender Local-part
+          type: keyword
+        - id: recipientdomain
+          label: Recipient Domain
+          type: keyword
+          sortable: true
+          policy:
+            field: recipientdomain
+        - id: recipientlocalpart
+          label: Recipient Local-part
+          type: keyword
+        - id: transportid
+          label: Transport ID
+          type: keyword
+          sortable: true
+          policy:
+            field: transportid
+        - id: grouping
+          label: Grouping
+          type: keyword
+          sortable: true
+          policy:
+            field: grouping
+        - id: jobid
+          label: Job ID
+          type: keyword
+          sortable: true
+          policy:
+            field: jobid
+        - id: tenantid
+          label: Tenant ID
+          type: keyword
+          sortable: true
+          policy:
+            field: tenantid
+        - id: remoteip
+          label: Remote IP
+          type: ip
+          sortable: true
+          policy:
+            field: remoteip
+        - id: remotemx
+          label: Remote MX
+          type: keyword
+          sortable: true
+          policy:
+            field: remotemx
+        - id: size
+          label: Size (bytes)
+          type: long
+          sortable: true
+        - id: duration
+          label: Duration
+          type: long
+          sortable: true
+        - id: totalduration
+          label: Total Duration
+          type: long
+          sortable: true
+        - id: smtpcode
+          label: SMTP Code
+          type: long
+          sortable: true
+        - id: smtpenhanced
+          label: SMTP Enhanced
+        - id: smtpreason
+          label: Reason
+          type: keyword
+        - id: smtpstate
+          label: SMTP State
+        - id: class
+          label: Classification
+          type: keyword
+          sortable: true
+        - id: metadata
+          label: Metadata
+    components:
+      preview:
+        layout:
+          - label: Fields
+            column: 1
+            type: fields
+            fields:
+              - id: transportid
+              - id: localip
+              - id: remoteip
+              - id: remotemx
+              - id: recipientdomain
+              - id: jobid
+              - id: tenantid
+              - id: grouping
+          - label: Transaction
+            column: 1
+            type: fields
+            fields:
+              - id: transactionid
+              - id: received
+              - id: hostname
+              - id: senderdomain
+              - id: senderlocalpart
+              - id: recipientlocalpart
+              - id: size
+          - label: Delivery Attempt
+            column: 2
+            type: fields
+            fields:
+              - id: action
+              - id: "@timestamp"
+              - id: duration
+              - id: totalduration
+              - id: smtpcode
+              - id: smtpenhanced
+              - id: smtpstate
+              - id: smtpreason
+          - label: Metadata
+            column: 2
+            type: fields
+            fields:
+              - id: metadata
+                label: metadata
+      history:
+        chart:
+          id: action history
+        views:
+          - label: Default
+            sort:
+              default:
+                field: "@timestamp"
+                direction: desc
+            fields:
+              - id: action
+                column:
+                  width: 120
+              - id: "@timestamp"
+              - id: jobid
+              - id: tenantid
+              - id: senderdomain
+              - id: localip
+              - id: recipientdomain
+              - id: remotemx
+              - id: grouping
+              - id: smtpreason
+      statistics:
+        views:
+          - id: default
+            label: Default
+            charts:
+              - id: delivered sparkline
+                properties:
+                  grid:
+                    h: 3
+              - id: deferred sparkline
+                properties:
+                  grid:
+                    h: 3
+              - id: bounced sparkline
+                properties:
+                  grid:
+                    h: 3
+              - id: bounce rate sparkline
+                properties:
+                  grid:
+                    h: 3
+                    w: 4
+              - id: average delivery time sparkline
+                properties:
+                  grid:
+                    h: 3
+                    w: 4
+              - id: average message size
+                properties:
+                  grid:
+                    h: 3
+                    w: 4
+              - id: action histogram
+              - id: average delivery histogram
+              - id: bounce classifications
+              - id: top remote mx
+                properties:
+                  grid:
+                    w: 6
+              - id: top remote ip
+                properties:
+                  grid:
+                    w: 6
+              - id: top recipient domain
+                properties:
+                  grid:
+                    w: 6
+              - id: top sender domain
+                properties:
+                  grid:
+                    w: 6
+              - id: top local ip
+                properties:
+                  grid:
+                    w: 6
+              - id: top local hostname
+                properties:
+                  grid:
+                    w: 6
+              - id: top job id
+                properties:
+                  grid:
+                    w: 6
+              - id: top error messages
+                properties:
+                  grid:
+                    h: 6
+                    w: 6
+        colors:
+          palette:
+            - "#3333ff"
+            - "#f20d0d"
+            - "#00b300"
+            - "#ffbf00"
+            - "#8066f5"
+            - "#f060b7"
+          values:
+            "delivered": "#00b300"
+            "removed": "#808080"
+            "deferred": "#ffbf00"
+            "bounced": "#f20d0d"
+            "DELIVER": "#00b300"
+            "REMOVE": "#808080"
+            "DEFER": "#ffbf00"
+            "BOUNCE": "#f20d0d"
+        legends:
+          values:
+            - value: "name"
+              label: "Name"
+            - value: "count"
+              label: "Total"
+            - value: delivered
+              label: DELIVER
+            - value: removed
+              label: REMOVE
+            - value: deferred
+              label: DEFER
+            - value: bounced
+              label: BOUNCE
+        charts:
+          - id: action history
+            label: History
+            type: bar
+            splitSeries: true
+            trackTotalHits: true
+            formatter:
+              xaxis:
+                type: date
+              yaxis:
+                type: metric
+              label:
+                type: date
+            chart:
+              stacked: true
+            query: >
+              {
+                "aggs": {
+                  "0": {
+                    "date_histogram": { "field": "@timestamp" },
+                    "aggs": {
+                      "1": {
+                        "terms": { "field": "action", "size": 10 }
+                      }
+                    }
+                  }
+                }
+              }
+          # Metric charts
+          - id: totalmessages sparkline
+            label: Total Messages
+            type: metric
+            path:
+              agg: docs
+              bucket: all.doc_count
+            metric:
+              sparkline:
+                type: line
+                path:
+                  agg: sparkline
+                  bucket: doc_count
+            colors:
+              palette:
+                - "blue"
+            query: >
+              {
+                "aggs": {
+                  "docs": {
+                    "filters": {
+                      "filters": {
+                        "all": {
+                          "match_all": {}
+                        }
+                      }
+                    }
+                  },
+                  "sparkline": {
+                    "date_histogram": {
+                      "field": "@timestamp"
+                    }
+                  }
+                }
+              }
+          - id: delivered sparkline
+            label: Delivered
+            type: metric
+            path:
+              agg: docs
+              bucket: all.delivered.doc_count
+            metric:
+              sparkline:
+                type: line
+                path:
+                  agg: sparkline
+                  bucket: delivered.doc_count
+            colors:
+              palette:
+                - "green"
+            query: >
+              {
+                "aggs": {
+                  "docs": {
+                    "filters": {
+                      "filters": {
+                        "all": {
+                          "match_all": {}
+                        }
+                      }
+                    },
+                    "aggs": {
+                      "delivered": {
+                        "filter": {
+                          "terms": {
+                            "action": [
+                              "delivered"
+                            ]
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "sparkline": {
+                    "date_histogram": {
+                      "field": "@timestamp"
+                    },
+                    "aggs": {
+                      "delivered": {
+                        "filter": {
+                          "term": {
+                            "action": "delivered"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+          - id: deferred sparkline
+            label: Deferred
+            type: metric
+            path:
+              agg: docs
+              bucket: all.deferred.doc_count
+            metric:
+              sparkline:
+                type: line
+                path:
+                  agg: sparkline
+                  bucket: deferred.doc_count
+            colors:
+              palette:
+                - "yellow"
+            query: >
+              {
+                "aggs": {
+                  "docs": {
+                    "filters": {
+                      "filters": {
+                        "all": {
+                          "match_all": {}
+                        }
+                      }
+                    },
+                    "aggs": {
+                      "deferred": {
+                        "filter": {
+                          "terms": {
+                            "action": [
+                              "deferred"
+                            ]
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "sparkline": {
+                    "date_histogram": {
+                      "field": "@timestamp"
+                    },
+                    "aggs": {
+                      "deferred": {
+                        "filter": {
+                          "term": {
+                            "action": "deferred"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+          - id: bounced sparkline
+            label: Bounced
+            type: metric
+            path:
+              agg: docs
+              bucket: all.bounced.doc_count
+            metric:
+              sparkline:
+                type: line
+                path:
+                  agg: sparkline
+                  bucket: bounced.doc_count
+            colors:
+              palette:
+                - "red"
+            query: >
+              {
+                "aggs": {
+                  "docs": {
+                    "filters": {
+                      "filters": {
+                        "all": {
+                          "match_all": {}
+                        }
+                      }
+                    },
+                    "aggs": {
+                      "bounced": {
+                        "filter": {
+                          "terms": {
+                            "action": [
+                              "bounced"
+                            ]
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "sparkline": {
+                    "date_histogram": {
+                      "field": "@timestamp"
+                    },
+                    "aggs": {
+                      "bounced": {
+                        "filter": {
+                          "term": {
+                            "action": "bounced"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+          - id: average delivery time sparkline
+            label: Average Delivery Time (seconds)
+            type: metric
+            colors:
+              palette:
+                - "blue"
+            path:
+              agg: transfertime
+              bucket: count
+            metric:
+              sparkline:
+                type: line
+                path:
+                  agg: sparkline
+                  bucket: duration.value
+            query: >
+              {
+                "aggs": {
+                  "transfertime": {
+                    "avg": {
+                      "field": "duration"
+                    }
+                  },
+                  "sparkline": {
+                    "date_histogram": {
+                      "field": "@timestamp"
+                    },
+                    "aggs": {
+                      "duration": {
+                        "avg": {
+                          "field": "duration"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+          - id: bounce rate sparkline
+            label: Bounce Rate
+            type: metric
+            colors:
+              palette:
+                - "red"
+            formatter:
+              label:
+                type: percentage
+            path:
+              agg: all_docs
+              bucket: all.sum_bounce_rate.value
+            metric:
+              sparkline:
+                type: line
+                path:
+                  agg: sparkline
+                  bucket: sum_bounce_rate.value
+            query: >
+              {
+                "query": {
+                  "bool": {
+                    "filter": [
+                      {
+                      "terms": {
+                          "action": [
+                            "bounced",
+                            "delivered"
+                          ]
+                        }
+                      }
+                    ]
+                  }
+                },
+                "aggs": {
+                  "all_docs": {
+                    "filters": {
+                      "filters": {
+                        "all": {
+                          "match_all": {}
+                        }
+                      }
+                    },
+                    "aggs": {
+                      "bounced": {
+                        "filter": {
+                          "terms": {
+                            "action": [
+                              "bounced"
+                            ]
+                          }
+                        }
+                      },
+                      "sum_bounce_rate": {
+                        "bucket_script": {
+                          "buckets_path": {
+                            "bounced": "bounced > _count",
+                            "total": "_count"
+                          },
+                          "script": "(params.bounced / params.total)",
+                          "format": "0.0%"
+                        }
+                      }
+                    }
+                  },
+                  "sparkline": {
+                    "date_histogram": {
+                      "field": "@timestamp"
+                    },
+                    "aggs": {
+                      "bounced": {
+                        "filter": {
+                          "terms": {
+                            "action": [
+                              "bounced"
+                            ]
+                          }
+                        }
+                      },
+                      "sum_bounce_rate": {
+                        "bucket_script": {
+                          "buckets_path": {
+                            "bounced": "bounced > _count",
+                            "total": "_count"
+                          },
+                          "script": "(params.bounced / params.total)",
+                          "format": "0.0%"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+          # Labels
+          - id: delivered
+            label: Delivered
+            type: label
+            colors:
+              palette:
+                - "green"
+            query: '{ "aggs": { "0": { "filter": { "terms": { "action": [ "delivered" ] } } } } }'
+          - id: deferred
+            label: Deferred
+            type: label
+            colors:
+              palette:
+                - "yellow"
+            query: '{ "aggs": { "0": { "filter": { "terms": { "action": [ "deferred" ] } } } } }'
+          - id: bounced
+            label: Bounced
+            type: label
+            colors:
+              palette:
+                - "red"
+            query: '{ "aggs": { "0": { "filter": { "terms": { "action": [ "bounced" ] } } } } }'
+          - id: average delivery time
+            label: Average Delivery Time (seconds)
+            type: label
+            colors:
+              palette:
+                - "blue"
+            query: '{ "aggs": { "0": { "avg": { "field": "duration" } } } }'
+          - id: average message size
+            label: Average Message Size (bytes)
+            type: label
+            colors:
+              palette:
+                - "blue"
+            formatter:
+              label:
+                type: metric
+            query: '{ "aggs": { "0": { "avg": { "field": "size" } } } }'
+          # Area charts
+          - id: action histogram
+            label: Action
+            type: area
+            splitSeries: true
+            formatter:
+              xaxis:
+                type: date
+              yaxis:
+                type: metric
+              label:
+                type: date
+            area:
+              stacked: true
+            query: >
+              {
+                "aggs": {
+                  "0": {
+                    "date_histogram": { "field": "@timestamp" },
+                    "aggs": {
+                      "1": {
+                        "terms": { "field": "action", "size": 10 }
+                      }
+                    }
+                  }
+                }
+              }
+          - id: average delivery histogram
+            label: Average Delivery Time
+            type: area
+            formatter:
+              xaxis:
+                type: date
+              label:
+                type: date
+            query: >
+              {
+                "aggs": {
+                  "0": {
+                    "date_histogram": { "field": "@timestamp" },
+                    "aggs": {
+                      "1": {
+                        "avg": { "field": "duration" }
+                      }
+                    }
+                  }
+                }
+              }
+          # Pie charts
+          - id: bounce classifications
+            label: Bounce Classifications
+            type: pie
+            pie:
+              donut: true
+            query: '{ "aggs": { "1": { "terms": { "field": "class", "size": 5 } } } }'
+          # Tables
+          - id: top remote mx
+            label: Remote MX
+            type: table
+            splitSeries: true
+            table:
+              showTotal: true
+            query: >
+              {
+                "aggs": {
+                  "0": {
+                    "terms": { "field": "remotemx.keyword", "order": { "_count": "desc" }, "size": 7 },
+                    "aggs": {
+                      "1": {
+                        "terms": { "field": "action", "order": { "_count": "desc" }, "size": 10 }
+                      }
+                    }
+                  }
+                }
+              }
+          - id: top remote ip
+            label: Remote IP
+            type: table
+            splitSeries: true
+            table:
+              showTotal: true
+            query: >
+              {
+                "aggs": {
+                  "0": {
+                    "terms": { "field": "remoteip", "order": { "_count": "desc" }, "size": 7 },
+                    "aggs": {
+                      "1": {
+                        "terms": { "field": "action", "order": { "_count": "desc" }, "size": 10 }
+                      }
+                    }
+                  }
+                }
+              }
+          - id: top recipient domain
+            label: Recipient Domain
+            type: table
+            splitSeries: true
+            table:
+              showTotal: true
+            query: >
+              {
+                "aggs": {
+                  "0": {
+                    "terms": { "field": "recipientdomain.keyword", "order": { "_count": "desc" }, "size": 7 },
+                    "aggs": {
+                      "1": {
+                        "terms": { "field": "action", "order": { "_count": "desc" }, "size": 10 }
+                      }
+                    }
+                  }
+                }
+              }
+          - id: top sender domain
+            label: Sender Domain
+            type: table
+            splitSeries: true
+            table:
+              showTotal: true
+            query: >
+              {
+                "aggs": {
+                  "0": {
+                    "terms": { "field": "senderdomain.keyword", "order": { "_count": "desc" }, "size": 7 },
+                    "aggs": {
+                      "1": {
+                        "terms": { "field": "action", "order": { "_count": "desc" }, "size": 10 }
+                      }
+                    }
+                  }
+                }
+              }
+          - id: top local ip
+            label: Local IP
+            type: table
+            splitSeries: true
+            table:
+              showTotal: true
+            query: >
+              {
+                "aggs": {
+                  "0": {
+                    "terms": { "field": "localip", "order": { "_count": "desc" }, "size": 7 },
+                    "aggs": {
+                      "1": {
+                        "terms": { "field": "action", "order": { "_count": "desc" }, "size": 10 }
+                      }
+                    }
+                  }
+                }
+              }
+          - id: top local hostname
+            label: Local Hostname
+            type: table
+            splitSeries: true
+            table:
+              showTotal: true
+            query: >
+              {
+                "aggs": {
+                  "0": {
+                    "terms": { "field": "hostname", "order": { "_count": "desc" }, "size": 7 },
+                    "aggs": {
+                      "1": {
+                        "terms": { "field": "action", "order": { "_count": "desc" }, "size": 10 }
+                      }
+                    }
+                  }
+                }
+              }
+          - id: top job id
+            label: Job ID
+            type: table
+            splitSeries: true
+            table:
+              showTotal: true
+            query: >
+              {
+                "aggs": {
+                  "0": {
+                    "terms": { "field": "jobid.keyword", "order": { "_count": "desc" }, "size": 7 },
+                    "aggs": {
+                      "1": {
+                        "terms": { "field": "action", "order": { "_count": "desc" }, "size": 10 }
+                      }
+                    }
+                  }
+                }
+              }
+          - id: top tenant id
+            label: Tenant ID
+            type: table
+            splitSeries: true
+            table:
+              showTotal: true
+            query: >
+              {
+                "aggs": {
+                  "0": {
+                    "terms": { "field": "tenantid.keyword", "order": { "_count": "desc" }, "size": 7 },
+                    "aggs": {
+                      "1": {
+                        "terms": { "field": "action", "order": { "_count": "desc" }, "size": 10 }
+                      }
+                    }
+                  }
+                }
+              }
+          - id: top error messages
+            label: Error Messages
+            type: table
+            query: >
+              {
+                "aggs": {
+                  "0": {
+                    "terms": { "field": "smtpreasonnormalized.keyword", "order": { "_count": "desc" }, "size": 7 }
+                  }
+                }
+              }
 {{- end }}

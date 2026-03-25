@@ -36,7 +36,7 @@ data:
     {{- if .Values.global.elasticsearch.enabled }}
     elasticsearch:
       index:
-        history: "halon-delivery-attempts"
+        history: "halon-transactions"
         policyd: "halon-policyd-actions"
       nodes:
         - url: {{ .Values.global.elasticsearch.url }}
@@ -57,78 +57,143 @@ data:
       transaction:
         id: _id
       timestamp:
-        id: "@timestamp"
+        id: receivedtime
       aggregations:
         timestamp:
-          id: "@timestamp"
+          id: receivedtime
       fields:
-        - id: "@timestamp"
-          label: Time
-          type: date
-          sortable: true
-        - id: received
-          label: Received At
-          type: date
-          sortable: true
-        - id: hostname
-          label: Hostname
         - id: transactionid
           label: Transaction ID
         - id: queueid
           label: Queue ID
-          sortable: true
+        - id: senderhelo
+          label: Sender HELO
         - id: action
           label: Action
+          type: keyword
           sortable: true
           values:
-            - value: delivered
-              label: DELIVER
+            - value: DELIVER
               color: "#00b300"
               textColor: "fff"
               format: badge
-            - value: removed
-              label: REMOVE
-              color: "#808080"
-              textColor: "fff"
-              format: badge
-            - value: deferred
-              label: DEFER
+            - value: QUARANTINE
               color: "#ffbf00"
               textColor: "000"
               format: badge
-            - value: bounced
-              label: BOUNCE
+            - value: REJECT
               color: "#f20d0d"
               textColor: "fff"
               format: badge
+            - value: QUEUE
+              color: "#3d3df5"
+              textColor: "fff"
+              format: badge
+            - value: DEFER
+              color: "#ffbf00"
+              textColor: "000"
+              format: badge
+            - value: DELETE
+              color: "#000"
+              textColor: "fff"
+              format: badge
+            - value: BOUNCE
+              color: "#f20d0d"
+              textColor: "fff"
+              format: badge
+        - id: receivedtime
+          label: Received At
+          type: date
+          sortable: true
+        - id: finishedtime
+          label: Finished At
+          type: date
+          sortable: true
+        - id: reason
+          label: Reason
+          type: keyword
+        - id: authusername
+          label: Auth Username
+          type: keyword
+        - id: hostname
+          label: Host
+          type: keyword
+        - id: serverid
+          label: Server ID
+          type: keyword
         - id: localip
           label: Local IP
           type: ip
-          sortable: true
           policy:
             field: localips
+        - id: remoteip
+          label: Sender IP
+          type: ip
+          sortable: true
+        - id: sender
+          label: Sender
+          type: keyword
+          sortable: true
         - id: senderdomain
           label: Sender Domain
           type: keyword
           sortable: true
-        - id: senderlocalpart
-          label: Sender Local-part
+        - id: recipient
+          label: Recipient
           type: keyword
+          sortable: true
         - id: recipientdomain
           label: Recipient Domain
           type: keyword
           sortable: true
           policy:
             field: recipientdomain
-        - id: recipientlocalpart
-          label: Recipient Local-part
-          type: keyword
         - id: transportid
           label: Transport ID
           type: keyword
           sortable: true
           policy:
             field: transportid
+        - id: subject
+          label: Subject
+          type: keyword
+          sortable: true
+        - id: size
+          label: Message Size (bytes)
+          sortable: true
+        - id: metadata.as_score
+          label: Anti-Spam Score
+        - id: metadata.as_id
+          label: Anti-Spam ID
+        - id: metadata.av_score
+          label: Anti-Virus Score
+        - id: metadata
+          label: Metadata
+        - id: queue.retry
+          label: Queue Retries
+        - id: queue.errorcode
+          label: Error Code
+          sortable: true
+        - id: queue.duration
+          label: Transfer Time
+          sortable: true
+        - id: queue.totalduration
+          label: Time in Queue
+          sortable: true
+        - id: queue.localip
+          label: Source IP
+        - id: queue.remoteip
+          label: Remote IP
+          policy:
+            field: remoteip
+        - id: queue.remotemx
+          label: Remote MX
+          sortable: true
+          policy:
+            field: remoteip
+        - id: queue.smtpcode
+          label: SMTP Code
+          sortable: true
         - id: grouping
           label: Grouping
           type: keyword
@@ -147,181 +212,140 @@ data:
           sortable: true
           policy:
             field: tenantid
-        - id: remoteip
-          label: Remote IP
-          type: ip
-          sortable: true
-          policy:
-            field: remoteip
-        - id: remotemx
-          label: Remote MX
-          type: keyword
-          sortable: true
-          policy:
-            field: remotemx
-        - id: size
-          label: Size (bytes)
-          type: long
-          sortable: true
-        - id: duration
-          label: Duration
-          type: long
-          sortable: true
-        - id: totalduration
-          label: Total Duration
-          type: long
-          sortable: true
-        - id: smtpcode
-          label: SMTP Code
-          type: long
-          sortable: true
-        - id: smtpenhanced
-          label: SMTP Enhanced
-        - id: smtpreason
-          label: Reason
-          type: keyword
-        - id: smtpstate
-          label: SMTP State
-        - id: class
-          label: Classification
-          type: keyword
-          sortable: true
-        - id: metadata
-          label: Metadata
     components:
       preview:
         layout:
-          - label: Fields
-            column: 1
-            type: fields
-            fields:
-              - id: transportid
-              - id: localip
-              - id: remoteip
-              - id: remotemx
-              - id: recipientdomain
-              - id: jobid
-              - id: tenantid
-              - id: grouping
           - label: Transaction
             column: 1
             type: fields
             fields:
-              - id: transactionid
-              - id: received
+              - id: action
+              - id: receivedtime
               - id: hostname
-              - id: senderdomain
-              - id: senderlocalpart
-              - id: recipientlocalpart
+              - id: transactionid
+              - id: queueid
+              - id: serverid
+              - id: senderhelo
+              - id: localip
+              - id: remoteip
+              - id: remoteptr
+              - id: authusername
+              - id: sender
+              - id: recipient
+              - id: subject
               - id: size
-          - label: Delivery Attempt
+              - id: reason
+          - label: Scores
+            column: 1
+            type: fields
+            fields:
+              - id: metadata.as_score
+              - id: metadata.as_id
+              - id: metadata.av_score
+          - label: Queue
             column: 2
             type: fields
             fields:
-              - id: action
-              - id: "@timestamp"
-              - id: duration
-              - id: totalduration
-              - id: smtpcode
-              - id: smtpenhanced
-              - id: smtpstate
-              - id: smtpreason
+              - id: transportid
+              - id: queue.localip
+              - id: queue.remoteip
+              - id: queue.remotemx
+              - id: jobid
+              - id: tenantid
+              - id: grouping
+              - id: queue.retry
+              - id: queue.errorcode
+              - id: queue.smtpcode
+              - id: queue.duration
+              - id: queue.totalduration
           - label: Metadata
-            column: 2
+            column: 1
             type: fields
             fields:
               - id: metadata
                 label: metadata
+          - type: headers
+            label: Headers
+            column: 2
+          - type: message
+            label: Preview
+            column: 2
       history:
         chart:
-          id: action history
+          id: history timeseries
         views:
           - label: Default
             sort:
               default:
-                field: "@timestamp"
+                field: receivedtime
                 direction: desc
             fields:
               - id: action
                 column:
                   width: 120
-              - id: "@timestamp"
-              - id: jobid
-              - id: tenantid
-              - id: senderdomain
-              - id: localip
-              - id: recipientdomain
-              - id: remotemx
-              - id: grouping
-              - id: smtpreason
+              - id: receivedtime
+              - id: remoteip
+              - id: sender
+              - id: recipient
+              - id: subject
+              - id: reason
       statistics:
         views:
           - id: default
             label: Default
             charts:
+              - id: totalmessages sparkline
+                properties:
+                  grid:
+                    h: 3
+                    w: 4
               - id: delivered sparkline
                 properties:
                   grid:
                     h: 3
-              - id: deferred sparkline
-                properties:
-                  grid:
-                    h: 3
-              - id: bounced sparkline
-                properties:
-                  grid:
-                    h: 3
-              - id: bounce rate sparkline
+                    w: 4
+              - id: rejected sparkline
                 properties:
                   grid:
                     h: 3
                     w: 4
-              - id: average delivery time sparkline
+              - id: failures sparkline
                 properties:
                   grid:
                     h: 3
                     w: 4
+              - id: average transfer time sparkline
+                properties:
+                  grid:
+                    h: 3
+                    w: 4
+              - id: queued
+                properties:
+                  grid:
+                    h: 3
+                    w: 2
               - id: average message size
                 properties:
                   grid:
                     h: 3
-                    w: 4
-              - id: action histogram
-              - id: average delivery histogram
-              - id: bounce classifications
-              - id: top remote mx
-                properties:
-                  grid:
-                    w: 6
-              - id: top remote ip
-                properties:
-                  grid:
-                    w: 6
-              - id: top recipient domain
-                properties:
-                  grid:
-                    w: 6
-              - id: top sender domain
-                properties:
-                  grid:
-                    w: 6
-              - id: top local ip
-                properties:
-                  grid:
-                    w: 6
-              - id: top local hostname
-                properties:
-                  grid:
-                    w: 6
-              - id: top job id
-                properties:
-                  grid:
-                    w: 6
+                    w: 2
+              - id: action timeline
+              - id: message size timeline
+              - id: action pie
+              - id: top recipient domains
+              - id: top sender domains
+              - id: top sender ip
+              - id: top blocked senders
+              - id: top hostname
               - id: top error messages
+              - id: top blocked viruses
+              - id: top spam scores
                 properties:
-                  grid:
-                    h: 6
-                    w: 6
+                  filters:
+                    - field: metadata.av_score
+                      value: 0
+                      operator: is_not
+              - id: top sa rules
         colors:
           palette:
             - "#3333ff"
@@ -331,34 +355,19 @@ data:
             - "#8066f5"
             - "#f060b7"
           values:
-            "delivered": "#00b300"
-            "removed": "#808080"
-            "deferred": "#ffbf00"
-            "bounced": "#f20d0d"
+            "QUEUE": "#3d3df5"
             "DELIVER": "#00b300"
-            "REMOVE": "#808080"
+            "REJECT": "#f20d0d"
             "DEFER": "#ffbf00"
             "BOUNCE": "#f20d0d"
-        legends:
-          values:
-            - value: "name"
-              label: "Name"
-            - value: "count"
-              label: "Total"
-            - value: delivered
-              label: DELIVER
-            - value: removed
-              label: REMOVE
-            - value: deferred
-              label: DEFER
-            - value: bounced
-              label: BOUNCE
+            "QUARANTINE": "#ffbf00"
+            "DELETE": "#000"
         charts:
-          - id: action history
-            label: History
-            type: bar
+          # Area charts
+          - id: action timeline
+            label: Action Timeline
+            type: area
             splitSeries: true
-            trackTotalHits: true
             formatter:
               xaxis:
                 type: date
@@ -366,16 +375,290 @@ data:
                 type: metric
               label:
                 type: date
-            chart:
+            area:
               stacked: true
             query: >
               {
                 "aggs": {
                   "0": {
-                    "date_histogram": { "field": "@timestamp" },
+                    "date_histogram": {
+                      "field": "receivedtime"
+                    },
                     "aggs": {
                       "1": {
-                        "terms": { "field": "action", "size": 10 }
+                        "terms": {
+                          "field": "action.keyword",
+                          "size": 10
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+          - id: message size timeline
+            label: Message Size Timeline
+            type: area
+            formatter:
+              xaxis:
+                type: date
+              yaxis:
+                type: metric
+              label:
+                type: date
+            query: >
+              {
+                "aggs": {
+                  "0": {
+                    "date_histogram": {
+                      "field": "receivedtime"
+                    },
+                    "aggs": {
+                      "1": {
+                        "sum": {
+                          "field": "size"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+          # Pie charts
+          - id: action pie
+            label: Number Of Actions
+            type: pie
+            query: >
+              {
+                "aggs": {
+                  "1": {
+                    "terms": {
+                      "field": "action.keyword",
+                      "size": 10
+                    }
+                  }
+                }
+              }
+          # Bar charts
+          - id: top blocked viruses
+            label: Blocked Virues
+            type: bar
+            query: >
+              {
+                "aggs": {
+                  "1": {
+                    "terms": {
+                      "field": "metadata.av_score.keyword",
+                      "order": {
+                        "_count": "desc"
+                      },
+                      "size": 10
+                    }
+                  }
+                }
+              }
+          - id: top spam scores
+            label: Spam Scores
+            type: bar
+            query: >
+              {
+                "aggs": {
+                  "1": {
+                    "terms": {
+                      "field": "metadata.as_score",
+                      "order": {
+                        "_count": "desc"
+                      },
+                      "size": 10
+                    }
+                  }
+                }
+              }
+          # Table charts
+          - id: top recipient domains
+            label: Recipient Domains
+            type: table
+            splitSeries: true
+            query: >
+              {
+                "aggs": {
+                  "0": {
+                    "terms": {
+                      "field": "recipientdomain.keyword",
+                      "order": {
+                        "_count": "desc"
+                      },
+                      "size": 10
+                    },
+                    "aggs": {
+                      "1": {
+                        "terms": {
+                          "field": "action.keyword",
+                          "order": {
+                            "_count": "desc"
+                          },
+                          "size": 10
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+          - id: top sender domains
+            label: Sender Domains
+            type: table
+            splitSeries: true
+            query: >
+              {
+                "aggs": {
+                  "0": {
+                    "terms": {
+                      "field": "senderdomain.keyword",
+                      "order": {
+                        "_count": "desc"
+                      },
+                      "size": 10
+                    },
+                    "aggs": {
+                      "1": {
+                        "terms": {
+                          "field": "action.keyword",
+                          "order": {
+                            "_count": "desc"
+                          },
+                          "size": 10
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+          - id: top sender ip
+            label: Sender IP's
+            type: table
+            splitSeries: true
+            query: >
+              {
+                "aggs": {
+                  "0": {
+                    "terms": {
+                      "field": "remoteip",
+                      "order": {
+                        "_count": "desc"
+                      },
+                      "size": 10
+                    },
+                    "aggs": {
+                      "1": {
+                        "terms": {
+                          "field": "action.keyword",
+                          "order": {
+                            "_count": "desc"
+                          },
+                          "size": 10
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+          - id: top hostname
+            label: Local Hostnames
+            type: table
+            splitSeries: true
+            query: >
+              {
+                "aggs": {
+                  "0": {
+                    "terms": {
+                      "field": "hostname.keyword",
+                      "order": {
+                        "_count": "desc"
+                      },
+                      "size": 10
+                    },
+                    "aggs": {
+                      "1": {
+                        "terms": {
+                          "field": "action.keyword",
+                          "order": {
+                            "_count": "desc"
+                          },
+                          "size": 10
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+          - id: top reason messages
+            label: Reason Messages
+            type: table
+            query: >
+              {
+                "aggs": {
+                  "0": {
+                    "terms": {
+                      "field": "reason.keyword",
+                      "order": {
+                        "_count": "desc"
+                      },
+                      "size": 10
+                    }
+                  }
+                }
+              }
+          - id: top blocked senders
+            label: Blocked Senders
+            type: table
+            query: >
+              {
+                "aggs": {
+                  "0": {
+                    "terms": {
+                      "field": "sender.keyword",
+                      "order": {
+                        "1": "desc"
+                      },
+                      "size": 10
+                    },
+                    "aggs": {
+                      "1": {
+                        "filter": {
+                          "bool": {
+                            "filter": [
+                              {
+                                "bool": {
+                                  "should": [
+                                    {
+                                      "bool": {
+                                        "should": [
+                                          {
+                                            "match_phrase": {
+                                              "action.keyword": "QUARANTINE"
+                                            }
+                                          }
+                                        ],
+                                        "minimum_should_match": 1
+                                      }
+                                    },
+                                    {
+                                      "bool": {
+                                        "should": [
+                                          {
+                                            "match_phrase": {
+                                              "action.keyword": "REJECT"
+                                            }
+                                          }
+                                        ],
+                                        "minimum_should_match": 1
+                                      }
+                                    }
+                                  ],
+                                  "minimum_should_match": 1
+                                }
+                              }
+                            ]
+                          }
+                        }
                       }
                     }
                   }
@@ -411,13 +694,13 @@ data:
                   },
                   "sparkline": {
                     "date_histogram": {
-                      "field": "@timestamp"
+                      "field": "receivedtime"
                     }
                   }
                 }
               }
           - id: delivered sparkline
-            label: Delivered
+            label: Delivered Messages
             type: metric
             path:
               agg: docs
@@ -446,8 +729,8 @@ data:
                       "delivered": {
                         "filter": {
                           "terms": {
-                            "action": [
-                              "delivered"
+                            "action.keyword": [
+                              "DELIVER"
                             ]
                           }
                         }
@@ -456,13 +739,13 @@ data:
                   },
                   "sparkline": {
                     "date_histogram": {
-                      "field": "@timestamp"
+                      "field": "receivedtime"
                     },
                     "aggs": {
                       "delivered": {
                         "filter": {
                           "term": {
-                            "action": "delivered"
+                            "action.keyword": "DELIVER"
                           }
                         }
                       }
@@ -470,107 +753,46 @@ data:
                   }
                 }
               }
-          - id: deferred sparkline
-            label: Deferred
+          - id: rejected sparkline
+            label: Rejected Messages
             type: metric
-            path:
-              agg: docs
-              bucket: all.deferred.doc_count
-            metric:
-              sparkline:
-                type: line
-                path:
-                  agg: sparkline
-                  bucket: deferred.doc_count
-            colors:
-              palette:
-                - "yellow"
-            query: >
-              {
-                "aggs": {
-                  "docs": {
-                    "filters": {
-                      "filters": {
-                        "all": {
-                          "match_all": {}
-                        }
-                      }
-                    },
-                    "aggs": {
-                      "deferred": {
-                        "filter": {
-                          "terms": {
-                            "action": [
-                              "deferred"
-                            ]
-                          }
-                        }
-                      }
-                    }
-                  },
-                  "sparkline": {
-                    "date_histogram": {
-                      "field": "@timestamp"
-                    },
-                    "aggs": {
-                      "deferred": {
-                        "filter": {
-                          "term": {
-                            "action": "deferred"
-                          }
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-          - id: bounced sparkline
-            label: Bounced
-            type: metric
-            path:
-              agg: docs
-              bucket: all.bounced.doc_count
-            metric:
-              sparkline:
-                type: line
-                path:
-                  agg: sparkline
-                  bucket: bounced.doc_count
             colors:
               palette:
                 - "red"
+            path:
+              agg: rejected
+              bucket: doc_count
+            metric:
+              sparkline:
+                type: line
+                path:
+                  agg: sparkline
+                  bucket: rejected.doc_count
             query: >
               {
                 "aggs": {
-                  "docs": {
-                    "filters": {
-                      "filters": {
-                        "all": {
-                          "match_all": {}
-                        }
-                      }
-                    },
-                    "aggs": {
-                      "bounced": {
-                        "filter": {
-                          "terms": {
-                            "action": [
-                              "bounced"
-                            ]
-                          }
-                        }
+                  "rejected": {
+                    "filter": {
+                      "terms": {
+                        "action.keyword": [
+                          "REJECT",
+                          "QUARANTINE"
+                        ]
                       }
                     }
                   },
                   "sparkline": {
                     "date_histogram": {
-                      "field": "@timestamp"
+                      "field": "receivedtime"
                     },
                     "aggs": {
-                      "bounced": {
+                      "rejected": {
                         "filter": {
-                          "term": {
-                            "action": "bounced"
+                          "terms": {
+                            "action.keyword": [
+                              "REJECT",
+                              "QUARANTINE"
+                            ]
                           }
                         }
                       }
@@ -578,8 +800,8 @@ data:
                   }
                 }
               }
-          - id: average delivery time sparkline
-            label: Average Delivery Time (seconds)
+          - id: average transfer time sparkline
+            label: Average Transfer Time (seconds)
             type: metric
             colors:
               palette:
@@ -592,63 +814,49 @@ data:
                 type: line
                 path:
                   agg: sparkline
-                  bucket: duration.value
+                  bucket: transfertime.value
             query: >
               {
                 "aggs": {
                   "transfertime": {
                     "avg": {
-                      "field": "duration"
+                      "field": "queue.duration"
                     }
                   },
                   "sparkline": {
                     "date_histogram": {
-                      "field": "@timestamp"
+                      "field": "receivedtime"
                     },
                     "aggs": {
-                      "duration": {
+                      "transfertime": {
                         "avg": {
-                          "field": "duration"
+                          "field": "queue.duration"
                         }
                       }
                     }
                   }
                 }
               }
-          - id: bounce rate sparkline
-            label: Bounce Rate
+          - id: failures sparkline
+            label: Delivery Failures
             type: metric
             colors:
               palette:
-                - "red"
+                - "yellow"
             formatter:
               label:
                 type: percentage
             path:
               agg: all_docs
-              bucket: all.sum_bounce_rate.value
+              bucket: all.sum_failure_rate.value
             metric:
               sparkline:
                 type: line
                 path:
                   agg: sparkline
-                  bucket: sum_bounce_rate.value
+                  bucket: sum_failure_rate.value
             query: >
               {
-                "query": {
-                  "bool": {
-                    "filter": [
-                      {
-                      "terms": {
-                          "action": [
-                            "bounced",
-                            "delivered"
-                          ]
-                        }
-                      }
-                    ]
-                  }
-                },
                 "aggs": {
                   "all_docs": {
                     "filters": {
@@ -659,22 +867,23 @@ data:
                       }
                     },
                     "aggs": {
-                      "bounced": {
+                      "failed": {
                         "filter": {
                           "terms": {
-                            "action": [
-                              "bounced"
+                            "action.keyword": [
+                              "BOUNCE",
+                              "DELETE"
                             ]
                           }
                         }
                       },
-                      "sum_bounce_rate": {
+                      "sum_failure_rate": {
                         "bucket_script": {
                           "buckets_path": {
-                            "bounced": "bounced > _count",
+                            "failed": "failed > _count",
                             "total": "_count"
                           },
-                          "script": "(params.bounced / params.total)",
+                          "script": "(params.failed / params.total)",
                           "format": "0.0%"
                         }
                       }
@@ -682,25 +891,26 @@ data:
                   },
                   "sparkline": {
                     "date_histogram": {
-                      "field": "@timestamp"
+                      "field": "receivedtime"
                     },
                     "aggs": {
-                      "bounced": {
+                      "failed": {
                         "filter": {
                           "terms": {
-                            "action": [
-                              "bounced"
+                            "action.keyword": [
+                              "BOUNCE",
+                              "DELETE"
                             ]
                           }
                         }
                       },
-                      "sum_bounce_rate": {
+                      "sum_failure_rate": {
                         "bucket_script": {
                           "buckets_path": {
-                            "bounced": "bounced > _count",
+                            "failed": "failed > _count",
                             "total": "_count"
                           },
-                          "script": "(params.bounced / params.total)",
+                          "script": "(params.failed / params.total)",
                           "format": "0.0%"
                         }
                       }
@@ -708,35 +918,23 @@ data:
                   }
                 }
               }
-          # Labels
-          - id: delivered
-            label: Delivered
-            type: label
-            colors:
-              palette:
-                - "green"
-            query: '{ "aggs": { "0": { "filter": { "terms": { "action": [ "delivered" ] } } } } }'
-          - id: deferred
-            label: Deferred
-            type: label
-            colors:
-              palette:
-                - "yellow"
-            query: '{ "aggs": { "0": { "filter": { "terms": { "action": [ "deferred" ] } } } } }'
-          - id: bounced
-            label: Bounced
-            type: label
-            colors:
-              palette:
-                - "red"
-            query: '{ "aggs": { "0": { "filter": { "terms": { "action": [ "bounced" ] } } } } }'
-          - id: average delivery time
-            label: Average Delivery Time (seconds)
+          # Label charts
+          - id: average transfer time
+            label: Average Transfer Time (seconds)
             type: label
             colors:
               palette:
                 - "blue"
-            query: '{ "aggs": { "0": { "avg": { "field": "duration" } } } }'
+            query: >
+              {
+                "aggs": {
+                  "0": {
+                    "avg": {
+                      "field": "queue.duration"
+                    }
+                  }
+                }
+              }
           - id: average message size
             label: Average Message Size (bytes)
             type: label
@@ -746,12 +944,123 @@ data:
             formatter:
               label:
                 type: metric
-            query: '{ "aggs": { "0": { "avg": { "field": "size" } } } }'
-          # Area charts
-          - id: action histogram
-            label: Action
-            type: area
+            query: >
+              {
+                "aggs": {
+                  "0": {
+                    "avg": {
+                      "field": "size"
+                    }
+                  }
+                }
+              }
+          - id: delivered
+            label: Delivered Messages
+            type: label
+            colors:
+              palette:
+                - "green"
+            query: >
+              {
+                "aggs": {
+                  "0": {
+                    "filter": {
+                      "terms": {
+                        "action.keyword": [
+                          "DELIVER"
+                        ]
+                      }
+                    }
+                  }
+                }
+              }
+          - id: queued
+            label: Queued Messages
+            type: label
+            colors:
+              palette:
+                - "blue"
+            query: >
+              {
+                "aggs": {
+                  "0": {
+                    "filter": {
+                      "terms": {
+                        "action.keyword": [
+                          "QUEUE"
+                        ]
+                      }
+                    }
+                  }
+                }
+              }
+          - id: rejected
+            label: Rejected Messages
+            type: label
+            colors:
+              palette:
+                - "red"
+            query: >
+              {
+                "aggs": {
+                  "0": {
+                    "filter": {
+                      "terms": {
+                        "action.keyword": [
+                          "REJECT",
+                          "QUARANTINE"
+                        ]
+                      }
+                    }
+                  }
+                }
+              }
+          - id: deferred
+            label: Deferred Messages
+            type: label
+            colors:
+              palette:
+                - "yellow"
+            query: >
+              {
+                "aggs": {
+                  "0": {
+                    "filter": {
+                      "terms": {
+                        "action.keyword": [
+                          "DEFER"
+                        ]
+                      }
+                    }
+                  }
+                }
+              }
+          - id: failures
+            label: Delivery Failures
+            type: label
+            colors:
+              palette:
+                - "yellow"
+            query: >
+              {
+                "aggs": {
+                  "0": {
+                    "filter": {
+                      "terms": {
+                        "action.keyword": [
+                          "BOUNCE",
+                          "DELETE"
+                        ]
+                      }
+                    }
+                  }
+                }
+              }
+          - id: history timeseries
+            label: History
+            type: bar
             splitSeries: true
+            trackTotalHits: true
             formatter:
               xaxis:
                 type: date
@@ -759,210 +1068,23 @@ data:
                 type: metric
               label:
                 type: date
-            area:
+            chart:
               stacked: true
             query: >
               {
                 "aggs": {
                   "0": {
-                    "date_histogram": { "field": "@timestamp" },
+                    "date_histogram": {
+                      "field": "receivedtime"
+                    },
                     "aggs": {
                       "1": {
-                        "terms": { "field": "action", "size": 10 }
+                        "terms": {
+                          "field": "action.keyword",
+                          "size": 10
+                        }
                       }
                     }
-                  }
-                }
-              }
-          - id: average delivery histogram
-            label: Average Delivery Time
-            type: area
-            formatter:
-              xaxis:
-                type: date
-              label:
-                type: date
-            query: >
-              {
-                "aggs": {
-                  "0": {
-                    "date_histogram": { "field": "@timestamp" },
-                    "aggs": {
-                      "1": {
-                        "avg": { "field": "duration" }
-                      }
-                    }
-                  }
-                }
-              }
-          # Pie charts
-          - id: bounce classifications
-            label: Bounce Classifications
-            type: pie
-            pie:
-              donut: true
-            query: '{ "aggs": { "1": { "terms": { "field": "class", "size": 5 } } } }'
-          # Tables
-          - id: top remote mx
-            label: Remote MX
-            type: table
-            splitSeries: true
-            table:
-              showTotal: true
-            query: >
-              {
-                "aggs": {
-                  "0": {
-                    "terms": { "field": "remotemx.keyword", "order": { "_count": "desc" }, "size": 7 },
-                    "aggs": {
-                      "1": {
-                        "terms": { "field": "action", "order": { "_count": "desc" }, "size": 10 }
-                      }
-                    }
-                  }
-                }
-              }
-          - id: top remote ip
-            label: Remote IP
-            type: table
-            splitSeries: true
-            table:
-              showTotal: true
-            query: >
-              {
-                "aggs": {
-                  "0": {
-                    "terms": { "field": "remoteip", "order": { "_count": "desc" }, "size": 7 },
-                    "aggs": {
-                      "1": {
-                        "terms": { "field": "action", "order": { "_count": "desc" }, "size": 10 }
-                      }
-                    }
-                  }
-                }
-              }
-          - id: top recipient domain
-            label: Recipient Domain
-            type: table
-            splitSeries: true
-            table:
-              showTotal: true
-            query: >
-              {
-                "aggs": {
-                  "0": {
-                    "terms": { "field": "recipientdomain.keyword", "order": { "_count": "desc" }, "size": 7 },
-                    "aggs": {
-                      "1": {
-                        "terms": { "field": "action", "order": { "_count": "desc" }, "size": 10 }
-                      }
-                    }
-                  }
-                }
-              }
-          - id: top sender domain
-            label: Sender Domain
-            type: table
-            splitSeries: true
-            table:
-              showTotal: true
-            query: >
-              {
-                "aggs": {
-                  "0": {
-                    "terms": { "field": "senderdomain.keyword", "order": { "_count": "desc" }, "size": 7 },
-                    "aggs": {
-                      "1": {
-                        "terms": { "field": "action", "order": { "_count": "desc" }, "size": 10 }
-                      }
-                    }
-                  }
-                }
-              }
-          - id: top local ip
-            label: Local IP
-            type: table
-            splitSeries: true
-            table:
-              showTotal: true
-            query: >
-              {
-                "aggs": {
-                  "0": {
-                    "terms": { "field": "localip", "order": { "_count": "desc" }, "size": 7 },
-                    "aggs": {
-                      "1": {
-                        "terms": { "field": "action", "order": { "_count": "desc" }, "size": 10 }
-                      }
-                    }
-                  }
-                }
-              }
-          - id: top local hostname
-            label: Local Hostname
-            type: table
-            splitSeries: true
-            table:
-              showTotal: true
-            query: >
-              {
-                "aggs": {
-                  "0": {
-                    "terms": { "field": "hostname", "order": { "_count": "desc" }, "size": 7 },
-                    "aggs": {
-                      "1": {
-                        "terms": { "field": "action", "order": { "_count": "desc" }, "size": 10 }
-                      }
-                    }
-                  }
-                }
-              }
-          - id: top job id
-            label: Job ID
-            type: table
-            splitSeries: true
-            table:
-              showTotal: true
-            query: >
-              {
-                "aggs": {
-                  "0": {
-                    "terms": { "field": "jobid.keyword", "order": { "_count": "desc" }, "size": 7 },
-                    "aggs": {
-                      "1": {
-                        "terms": { "field": "action", "order": { "_count": "desc" }, "size": 10 }
-                      }
-                    }
-                  }
-                }
-              }
-          - id: top tenant id
-            label: Tenant ID
-            type: table
-            splitSeries: true
-            table:
-              showTotal: true
-            query: >
-              {
-                "aggs": {
-                  "0": {
-                    "terms": { "field": "tenantid.keyword", "order": { "_count": "desc" }, "size": 7 },
-                    "aggs": {
-                      "1": {
-                        "terms": { "field": "action", "order": { "_count": "desc" }, "size": 10 }
-                      }
-                    }
-                  }
-                }
-              }
-          - id: top error messages
-            label: Error Messages
-            type: table
-            query: >
-              {
-                "aggs": {
-                  "0": {
-                    "terms": { "field": "smtpreasonnormalized.keyword", "order": { "_count": "desc" }, "size": 7 }
                   }
                 }
               }

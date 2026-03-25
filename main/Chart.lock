@@ -25,9 +25,9 @@ dependencies:
   version: 0.1.1
 - name: web
   repository: file://../web
-  version: 0.1.2
+  version: 0.1.3
 - name: classifier
   repository: file://../classifier
   version: 0.1.0
-digest: sha256:f64cbebd8c678ef2c6b95438efdae1260bc27627a99f3dbc9bd08d8d726e67b8
-generated: "2026-03-24T10:52:23.60598662Z"
+digest: sha256:de29f7cf18725b9e28423a57232ad527f86a2e1856ed98dded4e00261e3c90f5
+generated: "2026-03-25T13:37:55.974011951Z"

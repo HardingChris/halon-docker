@@ -50,8 +50,8 @@ helm registry login "$ACR_LOGIN_SERVER" \
     --username 00000000-0000-0000-0000-000000000000 \
     --password "$ACR_TOKEN"
 
-echo "Building dependency artifacts into main/charts"
-helm dependency build "$MAIN_CHART_DIR"
+echo "Refreshing dependency artifacts and Chart.lock in main/charts"
+helm dependency update "$MAIN_CHART_DIR"
 
 mkdir -p "$OUTPUT_DIR"
 main_package=$(helm package "$MAIN_CHART_DIR" --destination "$OUTPUT_DIR" | awk '/saved it to:/ {print $NF}')

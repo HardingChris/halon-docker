@@ -1,0 +1,11 @@
+version: "10.0"
+key: {{ .Values.clusterSyncKey }}
+reresolve: 5
+environment:
+  controlsocket:
+    port: {{ .Values.controlSocketPort }}
+  socket:
+    port: {{ .Values.global.rated.service.port }}
+  privdrop:
+    user: rated
+    group: rated

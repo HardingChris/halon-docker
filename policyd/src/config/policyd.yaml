@@ -1,0 +1,19 @@
+version: "1.0"
+listeners:
+  - port: {{ .Values.global.policyd.service.port }}
+websocket:
+  listener:
+    port: {{ .Values.global.policyd.websocket.service.port }}
+{{- if .Values.global.elasticsearch.enabled }}
+elasticsearch:
+  index:
+    history: halon-delivery-attempts
+    actions: halon-policyd-actions
+  nodes:
+    - url: {{ .Values.global.elasticsearch.url }}
+  tls:
+    verify: false
+  {{- if .Values.global.elasticsearch.auth }}
+  auth: {{ toYaml .Values.global.elasticsearch.auth | nindent 8 }}
+  {{- end }}
+{{- end }}

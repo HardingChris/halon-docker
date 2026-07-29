@@ -1,0 +1,44 @@
+version: "1.27"
+listeners:
+  - port: {{ .Values.global.web.service.port }}
+hosts: {{- if and (not .Values.global.smtpd.enabled) (not .Values.global.rated.enabled) }} []{{- end }}
+  {{- if .Values.global.smtpd.enabled }}
+  - address: "{{ .Release.Name }}-smtpd-api.{{ .Release.Namespace }}.svc.cluster.local"
+    port: {{ .Values.global.smtpd.api.service.port }}
+    kubernetes:
+      namespace: {{ .Release.Namespace }}
+      name: {{ .Release.Name }}-smtpd
+    processes:
+      - smtpd
+  {{- end }}
+  {{- if .Values.global.rated.enabled }}
+  - address: "{{ .Release.Name }}-rated-api.{{ .Release.Namespace }}.svc.cluster.local"
+    port: {{ .Values.global.rated.api.service.port }}
+    expand: true
+    processes:
+      - rated
+  {{- end }}
+reresolve: 5
+users: {{ toYaml .Values.users | nindent 6 }}
+environment:
+  privdrop:
+    user: web
+    group: web
+{{- if .Values.global.elasticsearch.enabled }}
+elasticsearch:
+  index:
+    history: "halon-transactions"
+    policyd: "halon-policyd-actions"
+  nodes:
+    - url: {{ .Values.global.elasticsearch.url }}
+  tls:
+    rejectUnauthorized: false
+  {{- if .Values.global.elasticsearch.auth }}
+  auth: {{ toYaml .Values.global.elasticsearch.auth | nindent 8 }}
+  {{- end }}
+{{- end }}
+{{- if .Values.global.policyd.enabled }}
+policyd:
+  address: "{{ .Release.Name }}-policyd.{{ .Release.Namespace }}.svc.cluster.local"
+  port: {{ .Values.global.policyd.service.port }}
+{{- end }}

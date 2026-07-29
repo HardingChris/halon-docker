@@ -17,4 +17,5 @@ ENV NODE_ENV=production
 RUN groupadd -g 2000 web
 RUN useradd -u 2000 -g 2000 web
 
+
 CMD [ "/opt/halon/web/node/bin/node", "/opt/halon/web/dist/bin/server.js" ]

@@ -79,15 +79,8 @@ resolve_component_build_settings() {
 		return 1
 	fi
 
-	RESOLVED_BUILD_CONTEXT="$component_dir"
-
-	# Some components (for example smtpd) document images/<distro> as build context.
-	readme_context=$(sed -n 's/^[[:space:]]*\(images\/[^[:space:]]*\)[[:space:]]*$/\1/p' "$readme" | head -n 1)
-	case "$readme_context" in
-		images/*)
-			RESOLVED_BUILD_CONTEXT="$component_dir/images/$TARGET_DISTRO"
-			;;
-	esac
+	# Build consistently from the per-distro image directory for all components.
+	RESOLVED_BUILD_CONTEXT="$component_dir/images/$TARGET_DISTRO"
 
 	if [ ! -d "$RESOLVED_BUILD_CONTEXT" ]; then
 		echo "ERROR: Missing build context directory: $RESOLVED_BUILD_CONTEXT" >&2

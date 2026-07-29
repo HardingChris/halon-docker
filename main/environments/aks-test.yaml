@@ -44,11 +44,11 @@ expurgate:
 smtpd:
   image:
     repository: apprelaypoccontreg.azurecr.io/halon/smtpd
-    pullPolicy: IfNotPresent
+    pullPolicy: Always
   api:
     image:
       repository: apprelaypoccontreg.azurecr.io/halon/api
-      pullPolicy: IfNotPresent
+      pullPolicy: Always
 
 web:
   image:

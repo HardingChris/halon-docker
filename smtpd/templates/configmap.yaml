@@ -2,132 +2,39 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: {{ include "smtpd.fullname" . }}
+  name: {{ include "smtpd.fullname" . }}-config
   labels:
     {{- include "smtpd.labels" . | nindent 4 }}
 data:
   smtpd.yaml: |
-    version: "6.10"
-    servers:
-      - id: default
-        listeners:
-          - port: {{ .Values.global.smtpd.service.port }}
-    plugins:
-      {{- if .Values.global.rated.enabled }}
-      - id: rate
-        config:
-          reresolve: 5
-      {{- end }}
-      {{- if .Values.global.policyd.enabled }}
-      - id: policyd-client
-        config:
-          address: ws://{{ .Release.Name }}-policyd-websocket.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.global.policyd.websocket.service.port }}
-      {{- end }}
-      - id: k8s-hqfmove
-        config:
-          name: {{ include "smtpd.fullname" . }}
-          namespace: {{ .Release.Namespace }}
-          port: {{ .Values.controlSocketPort }}
-    environment:
-      uuid:
-        version: 4
-      controlsocket:
-        port: {{ .Values.controlSocketPort }}
-      privdrop:
-        user: smtpd
-        group: smtpd
-      umask: "0027"
-      rlimit:
-        nofile: 70000
-      licensekey: /license.key
-    {{- if .Values.global.clusterd.enabled }}
-    cluster:
-      address: "{{ .Release.Name }}-clusterd.{{ .Release.Namespace }}.svc.cluster.local"
-      port: {{ .Values.global.clusterd.service.port }}
-      startup:
-        hosts: {{ .Values.replicaCount }}
-    {{- end }}
-    monitor:
-      listener:
-        port: {{ .Values.readinessProbe.httpGet.port }}
+{{ tpl (.Files.Get "src/config/smtpd.yaml") . | nindent 4 }}
   smtpd-app.yaml: |
-    version: "6.10"
-    servers:
-      - id: default
-        transport: mx
-    transportgroups:
-      - id: default
-        retry:
-          count: 30
-          intervals:
-            - interval: 60
-            - interval: 900
-            - interval: 3600
-              notify: true
-            - interval: 7200
-            - interval: 10800
-        dsn:
-          transport: mx
-        transports:
-          - id: mx
-            session:
-              tls:
-                mode: dane
-    resolver:
-      cache:
-        size: 10000
-    queues:
-      pooling:
-        size: 1000
-        policy: grouping
-      grouping:
-        default: recipientdomain
-    plugins: {{- if and (not .Values.global.rated.enabled) (not .Values.global.dlpd.enabled) }} []{{- end }}
-      {{- if .Values.global.rated.enabled }}
-      - id: rate
-        config:
-          port: {{ .Values.global.rated.service.port }}
-          address: "{{ .Release.Name }}-rated.{{ .Release.Namespace }}.svc.cluster.local"
-      {{- end }}
-      {{- if .Values.global.dlpd.enabled }}
-      - id: dlp
-        config:
-          port: {{ .Values.global.dlpd.service.port }}
-          address: "{{ .Release.Name }}-dlpd.{{ .Release.Namespace }}.svc.cluster.local"
-      {{- end }}
+{{ tpl (.Files.Get "src/config/smtpd-app.yaml") . | nindent 4 }}
   api.yaml: |
-    version: "6.10"
-    listeners:
-      - port:  {{ .Values.global.smtpd.api.service.port }}
-    environment:
-      privdrop:
-        user: api
-        group: api
-      controlsockets:
-        smtpd:
-          port: {{ .Values.controlSocketPort }}
+{{ tpl (.Files.Get "src/config/api.yaml") . | nindent 4 }}
   smtpd-policy.yaml: |
-    version: "6.10"
-    rate:
-      algorithm: tokenbucket
-    policies:
-      - fields:
-        - localip
-        - grouping
-        default:
-          concurrency: 20
-          properties:
-            backoff-concurrency: 1
-            backoff-rate: 1/10
-            backoff-ttl: 3600
-            backoff-disableable: true
-            backoff-suspendable: true
+{{ tpl (.Files.Get "src/config/smtpd-policy.yaml") . | nindent 4 }}
   smtpd-delivery.yaml: |
-    version: "6.10"
-    delivery:
-      default:
-        pooling:
-          enabled: true
-          transactions: 100
-          timeout: 10
+{{ tpl (.Files.Get "src/config/smtpd-delivery.yaml") . | nindent 4 }}
+{{- $root := . }}
+{{- $hookSubfolders := list "eod" "auth" "connect" "disconnect" "helo" "mailfrom" "proxy" "queue" "rcptto" }}
+{{- range $hook := $hookSubfolders }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "smtpd.fullname" $root }}-hooks-{{ $hook }}
+  labels:
+    {{- include "smtpd.labels" $root | nindent 4 }}
+{{- $hookFiles := $root.Files.Glob (printf "src/hooks/%s/**" $hook) }}
+{{- if $hookFiles }}
+data:
+{{- range $path, $_ := $hookFiles }}
+  {{ base $path }}: |
+{{ tpl ($root.Files.Get $path) $root | nindent 4 }}
+{{- end }}
+{{- else }}
+data: {}
+{{- end }}
+{{- end }}
 {{- end }}

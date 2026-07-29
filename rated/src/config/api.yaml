@@ -1,0 +1,10 @@
+version: "6.10"
+listeners:
+  - port: {{ .Values.global.rated.api.service.port }}
+environment:
+  privdrop:
+    user: api
+    group: api
+  controlsockets:
+    rated:
+      port: {{ .Values.controlSocketPort }}

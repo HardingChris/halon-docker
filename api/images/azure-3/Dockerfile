@@ -19,4 +19,5 @@ ENV NODE_ENV=production
 RUN groupadd -g 2000 api
 RUN useradd -u 2000 -g 2000 api
 
+
 CMD [ "/opt/halon/api/node/bin/node", "/opt/halon/api/dist/bin/server.js" ]

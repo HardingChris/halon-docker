@@ -1,0 +1,7 @@
+version: "6.10"
+delivery:
+  default:
+    pooling:
+      enabled: true
+      transactions: 100
+      timeout: 10

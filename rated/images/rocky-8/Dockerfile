@@ -19,4 +19,5 @@ RUN /usr/bin/install -d /var/run/halon
 RUN groupadd -g 2000 rated
 RUN useradd -u 2000 -g 2000 rated
 
+
 CMD ["sh", "-c", "exec env LD_LIBRARY_PATH=/opt/halon/lib/rated/:$LD_LIBRARY_PATH /opt/halon/sbin/rated -f"]

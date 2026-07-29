@@ -1,0 +1,15 @@
+version: "6.10"
+rate:
+  algorithm: tokenbucket
+policies:
+  - fields:
+    - localip
+    - grouping
+    default:
+      concurrency: 20
+      properties:
+        backoff-concurrency: 1
+        backoff-rate: 1/10
+        backoff-ttl: 3600
+        backoff-disableable: true
+        backoff-suspendable: true

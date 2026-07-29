@@ -7,22 +7,9 @@ metadata:
     {{- include "dlpd.labels" . | nindent 4 }}
 data:
   dlpd.yaml: |
-    version: "10.0"
-    environment:
-      controlsocket:
-        port: {{ .Values.controlSocketPort }}
-      socket:
-        port: {{ .Values.global.dlpd.service.port }}
-      privdrop:
-        user: dlpd
-        group: dlpd
-      umask: "0027"
+{{ tpl (.Files.Get "src/config/dlpd.yaml") . | nindent 4 }}
   dlpd-app.yaml: |-
-    version: "10.0"
-    rules: []
+{{ tpl (.Files.Get "src/config/dlpd-app.yaml") . | nindent 4 }}
   dlpctl.yaml: |
-    version: "10.0"
-    environment:
-      controlsocket:
-        port: {{ .Values.controlSocketPort }}
+{{ tpl (.Files.Get "src/config/dlpctl.yaml") . | nindent 4 }}
 {{- end }}

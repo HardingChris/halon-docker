@@ -1,0 +1,4 @@
+version: "10.0"
+peers:
+  - address: "{{ include "rated.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local"
+    expand: true

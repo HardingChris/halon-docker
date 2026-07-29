@@ -23,4 +23,5 @@ RUN chown dlpd:dlpd /var/spool/halon/tmp
 RUN /usr/bin/install -d var/spool/halon/tmp/dlpd
 RUN chown dlpd:dlpd /var/spool/halon/tmp/dlpd
 
+
 CMD ["sh", "-c", "exec env LD_LIBRARY_PATH=/opt/halon/lib/dlpd/:$LD_LIBRARY_PATH /opt/halon/sbin/dlpd -f"]

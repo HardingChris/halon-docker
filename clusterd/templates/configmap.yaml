@@ -7,11 +7,5 @@ metadata:
     {{- include "clusterd.labels" . | nindent 4 }}
 data:
   clusterd.yaml: |
-    version: "1.1"
-    listener:
-      port: {{ .Values.global.clusterd.service.port }}
-    environment:
-      privdrop:
-        user: clusterd
-        group: clusterd
+{{ tpl (.Files.Get "src/config/clusterd.yaml") . | nindent 4 }}
 {{- end }}

@@ -7,26 +7,7 @@ metadata:
     {{- include "policyd.labels" . | nindent 4 }}
 data:
   policyd.yaml: |
-    version: "1.0"
-    listeners:
-      - port: {{ .Values.global.policyd.service.port }}
-    websocket:
-      listener:
-        port: {{ .Values.global.policyd.websocket.service.port }}
-    {{- if .Values.global.elasticsearch.enabled }}
-    elasticsearch:
-      index:
-        history: halon-delivery-attempts
-        actions: halon-policyd-actions
-      nodes:
-        - url: {{ .Values.global.elasticsearch.url }}
-      tls:
-        verify: false
-      {{- if .Values.global.elasticsearch.auth }}
-      auth: {{ toYaml .Values.global.elasticsearch.auth | nindent 8 }}
-      {{- end }}
-    {{- end }}
+{{ tpl (.Files.Get "src/config/policyd.yaml") . | nindent 4 }}
   policyd-app.yaml: |
-    version: "1.0"
-    ips: {}
+{{ tpl (.Files.Get "src/config/policyd-app.yaml") . | nindent 4 }}
 {{- end }}

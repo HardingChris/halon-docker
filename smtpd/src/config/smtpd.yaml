@@ -1,0 +1,43 @@
+version: "6.10"
+servers:
+  - id: default
+    listeners:
+      - port: {{ .Values.global.smtpd.service.port }}
+plugins:
+  {{- if .Values.global.rated.enabled }}
+  - id: rate
+    config:
+      reresolve: 5
+  {{- end }}
+  {{- if .Values.global.policyd.enabled }}
+  - id: policyd-client
+    config:
+      address: ws://{{ .Release.Name }}-policyd-websocket.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.global.policyd.websocket.service.port }}
+  {{- end }}
+  - id: k8s-hqfmove
+    config:
+      name: {{ include "smtpd.fullname" . }}
+      namespace: {{ .Release.Namespace }}
+      port: {{ .Values.controlSocketPort }}
+environment:
+  uuid:
+    version: 4
+  controlsocket:
+    port: {{ .Values.controlSocketPort }}
+  privdrop:
+    user: smtpd
+    group: smtpd
+  umask: "0027"
+  rlimit:
+    nofile: 70000
+  licensekey: /license.key
+{{- if .Values.global.clusterd.enabled }}
+cluster:
+  address: "{{ .Release.Name }}-clusterd.{{ .Release.Namespace }}.svc.cluster.local"
+  port: {{ .Values.global.clusterd.service.port }}
+  startup:
+    hosts: {{ .Values.replicaCount }}
+{{- end }}
+monitor:
+  listener:
+    port: {{ .Values.readinessProbe.httpGet.port }}

@@ -1,0 +1,10 @@
+version: "10.0"
+environment:
+  controlsocket:
+    port: {{ .Values.controlSocketPort }}
+  socket:
+    port: {{ .Values.global.dlpd.service.port }}
+  privdrop:
+    user: dlpd
+    group: dlpd
+  umask: "0027"

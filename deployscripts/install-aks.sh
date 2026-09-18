@@ -6,8 +6,10 @@ RELEASE_NAME="${RELEASE_NAME:-halon}"
 NAMESPACE="${NAMESPACE:-default}"
 ACR_NAME="${ACR_NAME:-apprelaypoccontreg}"
 CHART_REPOSITORY="${CHART_REPOSITORY:-helm}"
-MAIN_CHART_VERSION="${MAIN_CHART_VERSION:-0.1.3}"
+MAIN_CHART_VERSION="${MAIN_CHART_VERSION:-0.1.4}"
 TARGET_CONTEXT="${TARGET_CONTEXT:-AppRelayPOC-aks}"
+INSTALL_ISTIO="${INSTALL_ISTIO:-true}"
+ISTIO_REVISION="${ISTIO_REVISION:-}"
 INSTALL_ELASTICSEARCH="${INSTALL_ELASTICSEARCH:-true}"
 ELASTIC_STACK_NAMESPACE="${ELASTIC_STACK_NAMESPACE:-elastic-stack}"
 ELASTICSEARCH_USERNAME="${ELASTICSEARCH_USERNAME:-elastic}"
@@ -24,6 +26,7 @@ REPO_ROOT=$(CDPATH= cd -- "$SCRIPT_DIR/.." && pwd)
 
 ENV_VALUES="$REPO_ROOT/main/environments/aks-test.yaml"
 ELASTIC_INSTALL_SCRIPT="$SCRIPT_DIR/install-elasticsearch.sh"
+ISTIO_INSTALL_SCRIPT="$SCRIPT_DIR/install-istio.sh"
 
 # Helpers
 require_cmd() {
@@ -125,6 +128,11 @@ if [ ! -f "$ELASTIC_INSTALL_SCRIPT" ]; then
     exit 1
 fi
 
+if [ ! -f "$ISTIO_INSTALL_SCRIPT" ]; then
+    echo "ERROR: Missing Istio install helper: $ISTIO_INSTALL_SCRIPT" >&2
+    exit 1
+fi
+
 # Chart source
 ACR_LOGIN_SERVER="$ACR_NAME.azurecr.io"
 CHART_REF="oci://$ACR_LOGIN_SERVER/$CHART_REPOSITORY/main"
@@ -146,6 +154,25 @@ case "$TARGET_CONTEXT" in
         exit 1
         ;;
 esac
+
+case "$INSTALL_ISTIO" in
+    true|TRUE|1|yes|YES)
+        echo "INSTALL_ISTIO enabled; enabling AKS Istio service mesh add-on"
+        ISTIO_REVISION=$(TARGET_CONTEXT="$TARGET_CONTEXT" ISTIO_REVISION="$ISTIO_REVISION" sh "$ISTIO_INSTALL_SCRIPT")
+        ;;
+    false|FALSE|0|no|NO|"")
+        ;;
+    *)
+        echo "ERROR: Invalid INSTALL_ISTIO value '$INSTALL_ISTIO'. Use true/false." >&2
+        exit 1
+        ;;
+esac
+
+# Extra helm arguments, kept in the positional parameters so they can be quoted safely.
+set --
+if [ -n "$ISTIO_REVISION" ]; then
+    set -- --set-string "smtpd.istio.revision=$ISTIO_REVISION"
+fi
 
 case "$INSTALL_ELASTICSEARCH" in
     true|TRUE|1|yes|YES)
@@ -182,7 +209,8 @@ if [ -n "$ES_PASSWORD" ]; then
         -f "$ENV_VALUES" \
         --set-string "global.elasticsearch.auth.username=$ELASTICSEARCH_USERNAME" \
         --set-file "global.elasticsearch.auth.password=$ES_PASSWORD_FILE" \
-        --render-subchart-notes
+        --render-subchart-notes \
+        "$@"
 else
     echo "WARNING: Elasticsearch password not found. Set ELASTICSEARCH_PASSWORD or ensure secret '$ELASTICSEARCH_SECRET_NAME' exists in namespace '$ELASTIC_STACK_NAMESPACE'."
     helm upgrade --install "$RELEASE_NAME" "$CHART_REF" \
@@ -191,7 +219,8 @@ else
         --namespace "$NAMESPACE" \
         --create-namespace \
         -f "$ENV_VALUES" \
-        --render-subchart-notes
+        --render-subchart-notes \
+        "$@"
 fi
 
 echo "Done. Release '$RELEASE_NAME' deployed to context '$TARGET_CONTEXT' in namespace '$NAMESPACE'."

@@ -49,6 +49,24 @@ smtpd:
     image:
       repository: apprelaypoccontreg.azurecr.io/halon/api
       pullPolicy: Always
+  # Pin smtpd pods to the dedicated smtpdpool node pool.
+  nodeSelector:
+    kubernetes.azure.com/agentpool: smtpdpool
+  # Requires smtpdpool nodes to be tainted (dedicated=smtpd:NoSchedule) so other pods can't land there.
+  tolerations:
+    - key: dedicated
+      operator: Equal
+      value: smtpd
+      effect: NoSchedule
+  istio:
+    enabled: true
+    # Revision is injected at install time by deployscripts/install-istio.sh (az aks mesh enable).
+    revision: ""
+    # Outbound SMTP bypasses the sidecar so delivery egresses directly via the smtpdpool
+    # subnet and its NAT gateway, keeping a stable outbound IP for reputation.
+    excludeOutboundPorts: "25"
+    # Uncomment if Istio inbound protocol sniffing interferes with inbound SMTP.
+    # excludeInboundPorts: "25"
 
 web:
   image:

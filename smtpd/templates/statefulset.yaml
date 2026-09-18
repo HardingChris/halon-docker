@@ -13,13 +13,13 @@ spec:
       {{- include "smtpd.selectorLabels" . | nindent 6 }}
   template:
     metadata:
-      {{- with .Values.podAnnotations }}
+      {{- with (include "smtpd.podAnnotations" . | fromYaml) }}
       annotations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       labels:
         {{- include "smtpd.labels" . | nindent 8 }}
-        {{- with .Values.podLabels }}
+        {{- with (include "smtpd.podLabels" . | fromYaml) }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
     spec:

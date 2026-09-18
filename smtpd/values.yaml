@@ -28,6 +28,22 @@ serviceAccount:
 podAnnotations: {}
 podLabels: {}
 
+istio:
+  # Opt smtpd pods into the Istio service mesh.
+  enabled: false
+  # Istio control plane revision to inject from (AKS add-on revisions look like "asm-1-24").
+  # Leave empty to rely on namespace-level injection labels.
+  revision: ""
+  # Outbound ports the sidecar must not capture, so the traffic egresses straight out of the
+  # node subnet via the NAT gateway instead of through the mesh.
+  excludeOutboundPorts: "25"
+  # Inbound ports the sidecar must not capture.
+  excludeInboundPorts: ""
+  # CIDRs excluded from outbound capture, e.g. "0.0.0.0/0" to bypass the mesh entirely.
+  excludeOutboundIPRanges: ""
+  # Extra sidecar annotations, e.g. proxy.istio.io/config overrides.
+  podAnnotations: {}
+
 podSecurityContext:
   fsGroup: 2000
 

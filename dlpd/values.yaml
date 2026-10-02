@@ -44,3 +44,8 @@ affinity: {}
 
 replicaCount: 1
 controlSocketPort: 5000
+
+# Rendered into dlpd-app.yaml
+app:
+  limits: {}
+  rules: []

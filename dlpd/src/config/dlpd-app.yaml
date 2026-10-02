@@ -1,2 +1,11 @@
-version: "10.0"
+version: "10.2"
+{{- with .Values.app.limits }}
+limits:
+  {{- toYaml . | nindent 2 }}
+{{- end }}
+{{- with .Values.app.rules }}
+rules:
+  {{- toYaml . | nindent 2 }}
+{{- else }}
 rules: []
+{{- end }}

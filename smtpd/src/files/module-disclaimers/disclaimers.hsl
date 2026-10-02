@@ -1,0 +1,42 @@
+import $disclaimer_plain from "txt!disclaimers/*.txt";
+import $disclaimer_html from "txt!disclaimers/*.html";
+
+function attach_disclaimer($mail, $senderdomain) {
+    global $disclaimer_plain, $disclaimer_html;
+
+    $plain_file = "disclaimers/" . $senderdomain . ".txt";
+    $html_file  = "disclaimers/" . $senderdomain . ".html";
+
+    //TODO - add logic to select defaultdisclaimer files if no specific disclaimer is found for the sending domain
+    $disclaimer_plain = $disclaimer_plain[$plain_file];
+    $disclaimer_html  = $disclaimer_html[$html_file];
+
+    $disclaimer_file_charset = "utf-8";
+
+    foreach($mail->findByType("^text/(plain|html)$") ?: !$mail->getType() or $mail->getType() == "text/plain" or $mail->getType() == "text/html" ? [$mail] : [] as $part) {
+        $type = $part->getType();
+        $body = $part->getBody();
+
+        $charset = pcre_match(#/charset=(.*)/, $part->getHeader("Content-Type") ?: "")[1];
+        $charset = $charset ? str_lower($charset) : "";
+        $supported_charsets = ["iso-8859-1", "utf-8", "windows-1252", "iso-8859-15"];
+        $use_iconv = $disclaimer_file_charset != $charset and array_includes($charset, $supported_charsets);
+        $text = Iconv("utf-8", "$charset//TRANSLIT//IGNORE");
+
+        if ($type == "text/html") {
+            $disclaimer = $use_iconv ? $text->convert($disclaimer_html) ?: $disclaimer_html : $disclaimer_html;
+            $found = false;
+            $body = pcre_replace(#/(?is)(<div\b[^>]*\bclass=["'][^"']*\bgmail_quote\b[^"']*["'][^>]*>|<div\b[^>]*\bclass=["'][^"']*\bAppleMailQuote\b[^"']*["'][^>]*>|<blockquote\b[^>]*>)/i, function ($f) closure ($disclaimer, $found) { $found = true; return $disclaimer.$f[0]; }, $body, 1);
+            if (!$found) {
+                $body = pcre_replace(#/(<\/body>)/i, function ($f) closure ($found, $disclaimer) { $found = true; return $disclaimer.$f[0]; }, $body);
+                if (!$found) $body = $body.$disclaimer;
+            }
+        } else {
+            $disclaimer = $use_iconv ? $text->convert($disclaimer_plain) ?: $disclaimer_plain : $disclaimer_plain;
+            $found = false;
+            $body = pcre_replace(#/(?m)^([^\r\n]*)\r?\n(?=(?:\r?\n)*>)/, function ($f) closure ($disclaimer, $found) { $found = true; return $disclaimer."\r\n\r\n".$f[0]; }, $body, 1);
+            if (!$found) $body =  $body."\r\n\r\n".$disclaimer;
+        }
+        $part->setBody($body);
+    }
+}

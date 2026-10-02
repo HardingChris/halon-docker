@@ -1,2 +1,128 @@
-// Placeholder hook implementation.
-// Add hook-specific HSL logic here.
+$transactionid = $transaction["id"];
+$sender = $transaction["senderaddress"];
+$recipients = $transaction["recipients"];
+$mail = $arguments["mail"];
+$senderdomain = $transaction["senderaddress"]["domain"];
+$blockaction = false;
+$quarantineaction = false;
+$transportoverride = "";
+$options = [];
+$metadata = [];
+
+import { attach_disclaimer } from "modules/disclaimers";
+import { log_eod } from "extras://history-elastic";
+import { dlp } from "extras://dlp";
+// import $keys from "txt!dkim/*.key";
+
+echo "Executing EOD Hook";
+
+// Perform DLP checks and set action if rules are triggered
+$dlp_results = dlp($mail->toFile());
+echo "DLP result: " . json_encode($dlp_results) . "\n";
+foreach ($dlp_results["result"] as $result) {
+    $rule = $result["rule"];
+    echo "DLP rule triggered: " . $rule . "\n"; //This could be replaced by a log or alert action   
+    if ($rule == "BLOCKPATTERNS" or $rule == "EXE") {
+        $blockaction = true;
+    } else if ($rule == "QUARANTINEPATTERNS") {
+        $quarantineaction = true;
+    }
+}
+
+
+// May as well reject now if needed to save processing the rest of script
+if ($blockaction) {
+    log_eod([
+        "action" => "REJECT",
+        "reason" => "DLP rules triggered: " . implode(", ", array_map(function($result) { return $result["rule"]; }, $dlp_results["result"])),
+        "recipient" => "",
+        "queueid" => "",
+        "arguments" => $arguments,
+        "connection" => $connection,
+        "transaction" => $transaction
+    ]);
+    Reject("Message blocked by DLP rules.");
+}
+
+// Can probably remove - Add missing headers
+/*
+if (!$mail->getHeader("Date"))
+    $mail->setHeader("Date", strftime("%a, %d %b %Y %T %z", $transaction["ts"]));
+
+$mail->setHeader("Message-ID", "<".$transaction["id"]."@".gethostname().">");
+*/
+
+// Attach disclaimer
+attach_disclaimer($mail, $senderdomain);
+
+// Check for Echoworx trigger conditions and set header if met
+//TODO - move this to a module, but for POC purposes leaving here for now
+
+$header_classification = $mail->getHeader("classification");
+$subject = $mail->getHeader("Subject") ?: "";
+$body_match = false;
+
+foreach ($mail->findByType("^text/(plain|html)$") ?: !$mail->getType() or $mail->getType() == "text/plain" or $mail->getType() == "text/html" ? [$mail] : [] as $part) {
+    $body = $part->getBody();
+    if (str_find($body, "Classification: Confidential") >= 0) {
+        $body_match = true;
+        break; // Stop if found in any part
+    }
+}
+
+echo $header_classification . "\n";
+echo $subject . "\n";
+echo "Body match: " . ($body_match ? "true" : "false") . "\n";
+
+if ($header_classification == "company-confidential" or (str_find($subject, "[CONFIDENTIAL]") >= 0 and $body_match)) {
+    echo "Echoworx trigger conditions met. Setting custom header.";
+    $mail->setHeader("AppRelay-to-Echoworx", "true");
+    $transportoverride = "Echoworx";
+}
+
+
+// TODO DKIM Signing
+/*
+$key = "dkim/" . $senderdomain . ".key";
+echo $key;
+$selector = "halon";
+if($keys[$key]) {
+    echo "Signing DKIM with key: " . $key;
+    $mail->signDKIM($selector, $senderdomain, $keys[$key]);
+}
+*/
+//TODO - add logic to select the emailmasters2015.com key if no other key is found for the sending domain - though would need DNS for each domain to be useful
+
+// For DLP quarantine action - we do this after all the other bits have been done in case we want to release
+if ($quarantineaction) {
+    $metadata["action"] = "QUARANTINE";
+    $metadata["reason"] = "DLP rules triggered: " . implode(", ", array_map(function($result) { return $result["rule"]; }, $dlp_results["result"]));
+    $options["hold"] = true;
+}
+
+
+$options["metadata"] = $metadata;
+
+// Queue message for all recipients
+echo "Transport override value: " . $transportoverride . "\n";
+foreach ($recipients as $recipient) {
+    if ($transportoverride != "") {
+        $recipient["transportid"] = $transportoverride;
+    }
+    echo $recipient["address"] . " via transport " . $recipient["transportid"] . "\n";
+    $r = $mail->queue($sender, $recipient["address"], $recipient["transportid"], $options);
+
+    /*
+    log_eod([
+        "action" => $metadata["action"] ?? "QUEUE",
+        "reason" => $metadata["reason"] ?? "",
+        "recipient" => $recipient,
+        "queueid" => $r["queue"],
+        "arguments" => $arguments,
+        "connection" => $connection,
+        "transaction" => $transaction
+    ]); 
+    */
+}
+
+Accept();

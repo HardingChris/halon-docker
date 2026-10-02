@@ -39,7 +39,7 @@ global:
       port: 8000
   dlpd:
     # The "halon-extras-dlp" package needs to be installed in the "smtpd" container if you want to enable this
-    enabled: false
+    enabled: true
     service:
       type: ClusterIP
       port: 3000

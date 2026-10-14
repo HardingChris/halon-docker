@@ -2,3 +2,4 @@ smtpd/dist
 main/charts
 main/main-*.tgz
 dist/helm
+dist/loadtest

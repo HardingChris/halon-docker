@@ -109,6 +109,9 @@ foreach ($recipients as $recipient) {
     if ($transportoverride != "") {
         $recipient["transportid"] = $transportoverride;
     }
+    {{- if .Values.relayOverride.enabled }}
+    $recipient["transportid"] = "mx";
+    {{- end }}
     echo $recipient["address"] . " via transport " . $recipient["transportid"] . "\n";
     $r = $mail->queue($sender, $recipient["address"], $recipient["transportid"], $options);
 

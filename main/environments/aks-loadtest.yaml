@@ -1,0 +1,38 @@
+global:
+  dlpd:
+    enabled: true
+  smtpd:
+    prometheus:
+      enabled: true
+
+smtpd:
+  istio:
+    excludeInboundPorts: "25"
+
+  replicaCount: 2
+  relayOverride:
+    enabled: true
+    host: halon-loadtest-sink.halon-loadtest.svc.cluster.local
+    port: 25
+    tlsMode: optional
+    networkPolicy:
+      enabled: true
+      sinkNamespace: halon-loadtest
+      sinkRelease: halon-loadtest
+  prometheus:
+    apiVersion: azmonitoring.coreos.com/v1
+  resources:
+    requests: {cpu: "1", memory: 4Gi}
+    limits: {cpu: "1", memory: 4Gi}
+  api:
+    resources:
+      requests: {cpu: 100m, memory: 128Mi}
+      limits: {cpu: 500m, memory: 256Mi}
+
+dlpd:
+  replicaCount: 2
+  nodeSelector: {}
+  tolerations: []
+  resources:
+    requests: {cpu: 100m, memory: 1Gi}
+    limits: {cpu: "1", memory: 1Gi}

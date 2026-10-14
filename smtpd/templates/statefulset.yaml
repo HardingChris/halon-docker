@@ -13,10 +13,11 @@ spec:
       {{- include "smtpd.selectorLabels" . | nindent 6 }}
   template:
     metadata:
-      {{- with (include "smtpd.podAnnotations" . | fromYaml) }}
       annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        {{- with (include "smtpd.podAnnotations" . | fromYaml) }}
         {{- toYaml . | nindent 8 }}
-      {{- end }}
+        {{- end }}
       labels:
         {{- include "smtpd.labels" . | nindent 8 }}
         {{- with (include "smtpd.podLabels" . | fromYaml) }}
@@ -54,10 +55,12 @@ spec:
               mountPath: /var/spool/halon/queue
             - name: src-config
               mountPath: /src/config
-{{- range $hook := $hookSubfolders }}
-            - name: src-hooks-{{ $hook }}
-              mountPath: /src/hooks/{{ $hook }}
-{{- end }}
+            - name: src-files
+              mountPath: /src/files
+              readOnly: true
+            - name: src-hooks
+              mountPath: /src/hooks
+              readOnly: true
         - name: api
           securityContext:
             {{- toYaml .Values.securityContext | nindent 12 }}
@@ -79,11 +82,42 @@ spec:
         - name: src-config
           configMap:
             name: {{ include "smtpd.fullname" . }}-config
-{{- range $hook := $hookSubfolders }}
-        - name: src-hooks-{{ $hook }}
-          configMap:
-            name: {{ include "smtpd.fullname" $root }}-hooks-{{ $hook }}
-{{- end }}
+        - name: src-files
+          projected:
+            sources:
+              - configMap:
+                  name: {{ include "smtpd.fullname" . }}-files
+                  items:
+                    {{- range $path, $_ := .Files.Glob "src/files/**" }}
+                    {{- if not (hasPrefix "src/files/keys/" $path) }}
+                    - key: {{ sha256sum $path }}
+                      path: {{ trimPrefix "src/files/" $path | quote }}
+                    {{- end }}
+                    {{- end }}
+              {{- if .Files.Glob "src/files/keys/**" }}
+              - secret:
+                  name: {{ include "smtpd.fullname" . }}-file-keys
+                  items:
+                    {{- range $path, $_ := .Files.Glob "src/files/keys/**" }}
+                    - key: {{ sha256sum $path }}
+                      path: {{ trimPrefix "src/files/" $path | quote }}
+                    {{- end }}
+              {{- end }}
+        - name: src-hooks
+          projected:
+            sources:
+              {{- range $hook := $hookSubfolders }}
+              {{- $hookFiles := $root.Files.Glob (printf "src/hooks/%s/**" $hook) }}
+              {{- if $hookFiles }}
+              - configMap:
+                  name: {{ include "smtpd.fullname" $root }}-hooks-{{ $hook }}
+                  items:
+                    {{- range $path, $_ := $hookFiles }}
+                    - key: {{ base $path | quote }}
+                      path: {{ printf "%s/%s" $hook (base $path) | quote }}
+                    {{- end }}
+              {{- end }}
+              {{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}

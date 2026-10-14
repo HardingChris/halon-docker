@@ -18,6 +18,204 @@ This script uses the helm chart and images from the remote OCI registry to insta
 
 By default this script enables the AKS Istio service mesh add-on (see install-istio.sh) and installs or upgrades Elasticsearch (ECK operator + eck-stack) in the same cluster before installing the Halon chart. Set INSTALL_ISTIO=false or INSTALL_ELASTICSEARCH=false to skip those steps.
 
+# SMTP Capacity Tests
+
+The independent `loadtest/` chart installs Postfix `smtp-source` and `smtp-sink`
+in namespace `halon-loadtest`. Installation starts two discard sinks and **zero
+generators**. All SMTP traffic uses private cluster Services. Halon changes are
+opt-in through `main/environments/aks-loadtest.yaml`, layered after `aks-test.yaml`.
+Your existing DLP rules and hooks are retained. No TLS or Azure load-balancer
+capacity is measured by this baseline.
+
+## Prerequisites and Safety
+
+- Use a lab-only Halon release with no real traffic or pre-existing real mail in
+	its queues: the overlay redirects **all** delivery, including DSNs, to a sink.
+- By default, an enforced Azure, Calico or Cilium NetworkPolicy engine is required.
+	Scripts check the AKS network profile but cannot prove enforcement. Verify it before load.
+- Alternatively, set `ISOLATION_MODE=subnet-nsg` for Azure CNI Overlay. Before
+	installation and each run, scripts verify that every node pool subnet has an
+	NSG with a priority-100 outbound deny for Internet TCP25 from all sources.
+	This blocks public SMTP without changing the cluster data plane. It does not
+	enforce pod-to-pod policies, block private SMTP destinations, or block SMTP
+	on other ports. Use the fixed sink route and `.invalid` recipients as well.
+	NSG rules are stateful: existing connections must be closed before testing.
+- Review existing policies selecting smtpd: Kubernetes policies are additive;
+	an existing allow-all egress policy defeats the test policy. The opt-in policy
+	permits SMTP only to the selected sink pods, while retaining DNS, HTTPS,
+	in-release service connections, Elasticsearch and AKS Istio control traffic.
+	Review its fixed ports/namespaces if the lab differs from the defaults.
+- Check Istio permits plaintext inbound SMTP (for example PERMISSIVE mTLS).
+	Harness pods disable sidecar injection. smtpd retains its production sidecar
+	and port-25 outbound exclusion.
+- The smtpd image must contain `halon-extras-dlp`. Confirm DLP scans at runtime;
+	chart rendering alone does not prove that hooks execute successfully.
+- Existing spool PVCs and storage classes are unchanged. Do not change a live
+	StatefulSet's volume claim template to experiment with disk sizes/classes.
+- Freeze smtpd node count/autoscaling during measurements. Account for API and
+	Istio sidecars as well as smtpd resources. DLP runs on the untainted general
+	pool; check capacity there, including Elasticsearch and system workloads.
+
+## Install and Smoke Test
+
+Run from the repository root. These commands create chargeable resources only
+when their explicit creation flags are set. Review quota, VM SKU, subnet free
+addresses and the estimated cost before running them.
+
+```bash
+CREATE_MONITORING_RESOURCES=true bash deployscripts/setup-aks-monitoring.sh
+CREATE_NODEPOOL=true bash deployscripts/install-loadtest.sh
+sh deployscripts/package-helm-charts.sh
+EXTRA_VALUES_FILES="$PWD/main/environments/aks-loadtest.yaml" sh deployscripts/install-aks.sh
+```
+
+`setup-aks-monitoring.sh` uses existing `halon-lab-metrics` and
+`halon-lab-grafana` resources by default; the creation flag creates missing ones.
+Override `MONITOR_RESOURCE_GROUP`, `MONITOR_WORKSPACE_NAME`, `GRAFANA_NAME`, or
+supply `AZURE_MONITOR_WORKSPACE_ID` and `GRAFANA_RESOURCE_ID` to reuse resources.
+The `amg` CLI extension is needed. Linking requires permission to assign the
+Grafana managed identity Monitoring Reader access. Grafana uses its managed
+identity; no API keys are created. Managed monitoring endpoints are not placed
+in the lab VNet by this script; Private Link is a separate configuration.
+
+`install-loadtest.sh` defaults to three fixed `Standard_D8s_v5` nodes, tainted
+`dedicated=loadtest:NoSchedule`, in `loadtestpool`. This is a starting allocation,
+not a demonstrated capacity recommendation. `NODE_COUNT`, `NODE_VM_SIZE`,
+`NODEPOOL_NAME`, `VNET_SUBNET_ID` and `POD_SUBNET_ID` are configurable. Subnets are
+otherwise inherited from the system pool. Existing pools are never resized.
+The script builds/pushes `halon/loadtest:0.1.0` to `ACR_NAME`; `BUILD_IMAGE=false`
+reuses a previously pushed image. AKS must already have ACR pull permission.
+Use `VALUES_FILE` for harness sizing/scenario overrides.
+
+The current lab already has `BlockOutboundSMTP` at priority 100 on
+`AppRelayPOCPermimeter-nsg`, attached to both AKS subnets. Managed Prometheus
+and its PodMonitor CRD also already exist, so monitoring setup and Grafana
+creation can be deferred for the first smoke test. To deploy only the idle
+harness on one smaller, chargeable test node when ready:
+
+```bash
+export ISOLATION_MODE=subnet-nsg
+CREATE_NODEPOOL=true NODE_COUNT=1 NODE_VM_SIZE=Standard_D4s_v5 \
+	bash deployscripts/install-loadtest.sh
+```
+
+Keep `ISOLATION_MODE=subnet-nsg` set for subsequent helper commands. This
+single-node layout is for functional verification, not capacity conclusions.
+The command does not apply the Halon overlay or send mail; use the separate
+packaging, overlay installation and smoke-test steps above only after confirming
+the lab contains no real mail. Do not remove the existing NSG rule at teardown.
+
+`install-aks.sh` accepts **newline-separated** `EXTRA_VALUES_FILES`, including
+paths with spaces. Files are layered in order after `aks-test.yaml`. Main chart
+version `0.1.5` must be packaged/pushed before installation. Confirm rollout of
+both smtpd and dlpd before testing. Never remove this overlay with test mail in
+active, deferred or held queues.
+
+After verifying egress enforcement and reviewing other policies, send one clean
+message from a sink pod (its egress policy allows the Halon Service):
+
+```bash
+kubectl --context AppRelayPOC-aks -n halon-loadtest exec deployment/halon-loadtest-sink -- \
+	smtp-source -4 -m 1 -f sender@loadtest.invalid -t recipient@loadtest.invalid \
+	-S 'Halon smoke test' -l 10240 halon-smtpd.default.svc.cluster.local:25
+```
+
+Confirm acceptance, DLP invocation, successful Halon delivery and a corresponding
+increment in the sink counter. Separately test rejection, quarantine and logging
+with representative messages using your normal SMTP test client. Inspect the
+loaded Halon config, not just Helm values. Do not use the default public targets
+in `verify-smtpd-egress.sh` for these isolated tests. Verify public SMTP is blocked
+using policy diagnostics or an authorized controlled endpoint, never real mail
+recipients. Then set `ISOLATION_VERIFIED=true` when starting a run.
+
+## Run and Measure
+
+```bash
+CONFIRM_LOADTEST=true ISOLATION_VERIFIED=true \
+	STAGES="1 4 16 64" STAGE_SECONDS=300 GENERATOR_REPLICAS=1 \
+	bash deployscripts/run-loadtest.sh
+```
+
+Stages specify concurrent sessions **per generator**, not messages/second.
+`smtp-source` opens a connection per message by default. `reuseConnection=true`
+reuses sessions within each finite batch; it does not enforce an exact number
+of messages per connection. `messagesPerBatch` is the total across sessions.
+`payloadBytes` excludes generated headers. `recipientsPerMessage` controls fanout;
+compare recipients as well as messages when using it. `delaySeconds` adds an
+integer-second wait per session between messages. This is closed-loop load,
+not a precise open-loop rate generator or SMTP latency-histogram tool.
+
+Domains must end in `.invalid`; `generator.domains` rotates domains between
+batches. One domain exercises one queue grouping and can hit the existing
+per-group delivery concurrency policy before CPU saturates. Use a representative
+domain mix, payload sizes and connection reuse before drawing sizing conclusions.
+The generated payload is synthetic plain text, not a representative MIME corpus.
+Neither Postfix tool supports STARTTLS, so production TLS cost needs a later test.
+
+The runner records UTC stage windows, harness values, cluster/node-pool settings,
+smtpd resources, logs and pod status under ignored `dist/loadtest/`. It stops the
+generator after each stage and on exit/failure, retaining sinks for queue drain.
+An in-pod deadline additionally stops sending after `generator.runSeconds`;
+the runner sets this to stage duration plus five minutes for rollout overhead.
+The pod stays idle after the deadline. A restarted pod gets a new deadline;
+any restart invalidates a stage. A hard-killed runner cannot run its cleanup trap.
+
+Managed Prometheus scrapes smtpd on 8080 and the harness on 9090. Verify healthy
+scrape targets before load, then use Grafana Explore with, for example:
+
+```promql
+sum by (role) (rate(loadtest_messages_total{namespace="halon-loadtest"}[1m]))
+sum by (role) (increase(loadtest_process_failures_total{namespace="halon-loadtest"}[5m]))
+sum by (pod, container) (rate(container_cpu_usage_seconds_total{namespace=~"default|halon-loadtest",container!=""}[1m]))
+```
+
+Also graph Halon's queue depth by state, accepted/delivered/deferred rates and
+queue age from its exposed `/metrics`, memory, CPU throttling, disk latency/IOPS,
+and node/network usage. Do not count intended DLP rejects or holds as capacity
+failures. Counters are process-local and reset on restart. A failed source batch
+may have partial progress; discard failed stages. Monitor exporter CPU because
+Postfix counter parsing adds overhead. Prove spare harness capacity by increasing
+generator and sink resources/replicas independently and confirming the measured
+Halon ceiling is unchanged; CPU below 50% alone does not prove headroom.
+
+Start at a fixed smtpd replica count and size, step load until sustained queue
+growth, unacceptable queue age, errors or a throughput plateau, then repeat at
+other pod counts/sizes. Change smtpd replicas through Helm so clusterd's
+`startup.hosts` stays aligned. Drain between independent trials. Finish with peak
+bursts and an average-rate soak, leaving measured operational headroom and
+node-failure allowance. DLP-off comparisons need a compatible hook change first:
+the current EOD hook unconditionally imports and calls DLP.
+
+## Stop and Remove
+
+Emergency stop (also works if the runner terminal is lost):
+
+```bash
+kubectl --context AppRelayPOC-aks -n halon-loadtest scale deployment/halon-loadtest-generator --replicas=0
+```
+
+Reconcile Helm's stored replica setting to zero before a subsequent run. Drain
+or explicitly delete **all test mail**, including deferred and held messages,
+while the sink and routing overlay still exist. Then:
+
+```bash
+CONFIRM_QUEUES_DRAINED=true bash deployscripts/uninstall-loadtest.sh
+EXTRA_VALUES_FILES= sh deployscripts/install-aks.sh
+```
+
+`DELETE_NODEPOOL=true` additionally deletes only a User pool tagged
+`purpose=halon-loadtest`. The uninstaller never edits Halon, deletes its queues,
+deletes the namespace, or removes shared monitoring resources. Delete the empty
+test namespace and unused monitoring resources separately after retaining results.
+If names/namespaces differ from the defaults, update both the harness settings
+and the Halon relay host/policy selectors together.
+
+References: [Postfix source](https://www.postfix.org/smtp-source.1.html),
+[Postfix sink](https://www.postfix.org/smtp-sink.1.html),
+[Halon transport configuration](https://docs.halon.io/manual/config_smtpd.html#transport-directives),
+[Azure monitoring](https://learn.microsoft.com/azure/azure-monitor/containers/kubernetes-monitoring-enable),
+[Managed Prometheus PodMonitor](https://learn.microsoft.com/azure/azure-monitor/containers/prometheus-metrics-scrape-crd).
+
 # install-istio.sh
 This script enables the managed Istio service mesh add-on on the AKS cluster (`az aks mesh enable`) and resolves the active control plane revision (for example `asm-1-24`). The revision is printed to stdout so install-aks.sh can pass it to Helm as `smtpd.istio.revision`, which adds the `istio.io/rev` label to the smtpd pods and therefore injects sidecars into smtpd only.
 

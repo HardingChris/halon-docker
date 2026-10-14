@@ -1,0 +1,45 @@
+image:
+  repository: apprelaypoccontreg.azurecr.io/halon/loadtest
+  tag: "0.1.0"
+  pullPolicy: IfNotPresent
+imagePullSecrets: []
+
+halon:
+  namespace: default
+  release: halon
+  service: halon-smtpd
+
+nodeSelector:
+  kubernetes.azure.com/agentpool: loadtestpool
+tolerations:
+  - key: dedicated
+    operator: Equal
+    value: loadtest
+    effect: NoSchedule
+
+generator:
+  replicas: 0
+  sessions: 1
+  messagesPerBatch: 1000
+  payloadBytes: 10240
+  recipientsPerMessage: 1
+  reuseConnection: false
+  delaySeconds: 0
+  batchTimeoutSeconds: 300
+  runSeconds: 600
+  domains: [loadtest.invalid]
+  resources:
+    requests: {cpu: "1", memory: 256Mi}
+    limits: {cpu: "2", memory: 512Mi}
+
+sink:
+  replicas: 2
+  maxConnections: 4096
+  backlog: 1024
+  resources:
+    requests: {cpu: "1", memory: 256Mi}
+    limits: {cpu: "2", memory: 512Mi}
+
+prometheus:
+  enabled: true
+  apiVersion: azmonitoring.coreos.com/v1

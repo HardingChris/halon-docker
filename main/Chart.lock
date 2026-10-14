@@ -7,7 +7,7 @@ dependencies:
   version: 0.1.0
 - name: dlpd
   repository: file://../dlpd
-  version: 0.1.0
+  version: 0.1.2
 - name: rated
   repository: file://../rated
   version: 0.1.0
@@ -22,12 +22,12 @@ dependencies:
   version: 0.1.0
 - name: smtpd
   repository: file://../smtpd
-  version: 0.1.2
+  version: 0.1.3
 - name: web
   repository: file://../web
   version: 0.1.3
 - name: classifier
   repository: file://../classifier
   version: 0.1.0
-digest: sha256:8b97872d9e966588420fe229c596aa31a8e2383be5381d6fb7d18a7b31f40c12
-generated: "2026-09-18T13:51:41.04442584Z"
+digest: sha256:607f5353dae92cbe67abb9b53437001527b8deccb3cd75df9964c970fe63baab
+generated: "2026-10-06T08:05:31.435413461Z"

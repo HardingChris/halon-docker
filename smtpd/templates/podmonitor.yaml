@@ -1,11 +1,16 @@
 {{- if .Values.global.smtpd.prometheus.enabled }}
-apiVersion: monitoring.coreos.com/v1
+apiVersion: {{ .Values.prometheus.apiVersion }}
 kind: PodMonitor
 metadata:
   name: {{ include "smtpd.fullname" . }}
   labels:
     {{- include "smtpd.labels" . | nindent 4 }}
 spec:
+  {{- if eq .Values.prometheus.apiVersion "azmonitoring.coreos.com/v1" }}
+  labelLimit: 63
+  labelNameLengthLimit: 511
+  labelValueLengthLimit: 1023
+  {{- end }}
   selector:
     matchLabels:
       {{- include "smtpd.selectorLabels" . | nindent 6 }}

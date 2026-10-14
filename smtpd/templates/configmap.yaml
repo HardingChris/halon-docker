@@ -37,4 +37,34 @@ data:
 data: {}
 {{- end }}
 {{- end }}
+{{- $fileData := dict }}
+{{- $keyData := dict }}
+{{- range $path, $_ := .Files.Glob "src/files/**" }}
+{{- if hasPrefix "src/files/keys/" $path }}
+{{- $_ := set $keyData (sha256sum $path) ($root.Files.Get $path | b64enc) }}
+{{- else }}
+{{- $_ := set $fileData (sha256sum $path) ($root.Files.Get $path | b64enc) }}
+{{- end }}
+{{- end }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "smtpd.fullname" . }}-files
+  labels:
+    {{- include "smtpd.labels" . | nindent 4 }}
+binaryData:
+  {{- toYaml $fileData | nindent 2 }}
+{{- if $keyData }}
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ include "smtpd.fullname" . }}-file-keys
+  labels:
+    {{- include "smtpd.labels" . | nindent 4 }}
+type: Opaque
+data:
+  {{- toYaml $keyData | nindent 2 }}
+{{- end }}
 {{- end }}

@@ -1,0 +1,18 @@
+{{- if .Values.prometheus.enabled }}
+apiVersion: {{ .Values.prometheus.apiVersion }}
+kind: PodMonitor
+metadata:
+  name: {{ .Release.Name }}
+spec:
+  labelLimit: 63
+  labelNameLengthLimit: 511
+  labelValueLengthLimit: 1023
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: {{ .Release.Name }}
+      app.kubernetes.io/name: loadtest
+  podTargetLabels: [app.kubernetes.io/component]
+  podMetricsEndpoints:
+    - port: metrics
+      interval: 15s
+{{- end }}

@@ -1,0 +1,119 @@
+{{- if eq .Release.Namespace .Values.halon.namespace }}
+{{- fail "Load testing requires a separate namespace from Halon" }}
+{{- end }}
+{{- range .Values.generator.domains }}
+{{- if not (hasSuffix ".invalid" .) }}
+{{- fail "Every generator domain must end in .invalid" }}
+{{- end }}
+{{- end }}
+{{- range $component := list "sink" "generator" }}
+{{- $settings := index $.Values $component }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $.Release.Name }}-{{ $component }}
+  labels:
+    app.kubernetes.io/name: loadtest
+    app.kubernetes.io/instance: {{ $.Release.Name }}
+    app.kubernetes.io/component: {{ $component }}
+spec:
+  replicas: {{ $settings.replicas }}
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: {{ $.Release.Name }}
+      app.kubernetes.io/component: {{ $component }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: loadtest
+        app.kubernetes.io/instance: {{ $.Release.Name }}
+        app.kubernetes.io/component: {{ $component }}
+        sidecar.istio.io/inject: "false"
+      annotations:
+        sidecar.istio.io/inject: "false"
+    spec:
+      automountServiceAccountToken: false
+      terminationGracePeriodSeconds: 30
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      {{- with $.Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      nodeSelector:
+        {{- toYaml $.Values.nodeSelector | nindent 8 }}
+      tolerations:
+        {{- toYaml $.Values.tolerations | nindent 8 }}
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                topologyKey: kubernetes.io/hostname
+                labelSelector:
+                  matchLabels:
+                    app.kubernetes.io/instance: {{ $.Release.Name }}
+      containers:
+        - name: {{ $component }}
+          image: "{{ $.Values.image.repository }}:{{ $.Values.image.tag }}"
+          imagePullPolicy: {{ $.Values.image.pullPolicy }}
+          args: [{{ $component | quote }}]
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+          resources:
+            {{- toYaml $settings.resources | nindent 12 }}
+          ports:
+            - name: metrics
+              containerPort: 9090
+            {{- if eq $component "sink" }}
+            - name: smtp
+              containerPort: 2525
+            {{- end }}
+          readinessProbe:
+            {{- if eq $component "sink" }}
+            tcpSocket:
+              port: smtp
+            {{- else }}
+            httpGet:
+              path: /metrics
+              port: metrics
+            {{- end }}
+          env:
+            {{- if eq $component "sink" }}
+            - name: MAX_CONNECTIONS
+              value: {{ $.Values.sink.maxConnections | quote }}
+            - name: BACKLOG
+              value: {{ $.Values.sink.backlog | quote }}
+            {{- else }}
+            - name: TARGET_HOST
+              value: {{ printf "%s.%s.svc.cluster.local" $.Values.halon.service $.Values.halon.namespace | quote }}
+            - name: SESSIONS
+              value: {{ $.Values.generator.sessions | quote }}
+            - name: MESSAGES_PER_BATCH
+              value: {{ $.Values.generator.messagesPerBatch | quote }}
+            - name: PAYLOAD_BYTES
+              value: {{ $.Values.generator.payloadBytes | quote }}
+            - name: RECIPIENTS_PER_MESSAGE
+              value: {{ $.Values.generator.recipientsPerMessage | quote }}
+            - name: REUSE_CONNECTION
+              value: {{ $.Values.generator.reuseConnection | quote }}
+            - name: DELAY_SECONDS
+              value: {{ $.Values.generator.delaySeconds | quote }}
+            - name: BATCH_TIMEOUT_SECONDS
+              value: {{ $.Values.generator.batchTimeoutSeconds | quote }}
+            - name: RUN_SECONDS
+              value: {{ $.Values.generator.runSeconds | quote }}
+            - name: DOMAINS
+              value: {{ join "," $.Values.generator.domains | quote }}
+            {{- end }}
+{{- end }}

@@ -28,6 +28,19 @@ serviceAccount:
 podAnnotations: {}
 podLabels: {}
 
+relayOverride:
+  enabled: false
+  host: ""
+  port: 25
+  tlsMode: optional
+  networkPolicy:
+    enabled: false
+    sinkNamespace: halon-loadtest
+    sinkRelease: halon-loadtest
+
+prometheus:
+  apiVersion: monitoring.coreos.com/v1
+
 istio:
   # Opt smtpd pods into the Istio service mesh.
   enabled: false

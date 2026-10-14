@@ -13,7 +13,7 @@ global:
       # If a "PodMonitor" should be automatically created. This requires that the "Prometheus Operator" is installed in Kubernetes
       enabled: false 
   clusterd:
-    enabled: true
+    enabled: false
     service:
       type: ClusterIP
       port: 2530

@@ -6,7 +6,7 @@ RELEASE_NAME="${RELEASE_NAME:-halon}"
 NAMESPACE="${NAMESPACE:-default}"
 ACR_NAME="${ACR_NAME:-apprelaypoccontreg}"
 CHART_REPOSITORY="${CHART_REPOSITORY:-helm}"
-MAIN_CHART_VERSION="${MAIN_CHART_VERSION:-0.1.4}"
+MAIN_CHART_VERSION="${MAIN_CHART_VERSION:-0.1.9}"
 TARGET_CONTEXT="${TARGET_CONTEXT:-AppRelayPOC-aks}"
 INSTALL_ISTIO="${INSTALL_ISTIO:-true}"
 ISTIO_REVISION="${ISTIO_REVISION:-}"
@@ -19,6 +19,7 @@ ELASTICSEARCH_SECRET_KEY="${ELASTICSEARCH_SECRET_KEY:-elastic}"
 ELASTICSEARCH_WAIT_FOR_SECRET="${ELASTICSEARCH_WAIT_FOR_SECRET:-true}"
 ELASTICSEARCH_SECRET_TIMEOUT_SECONDS="${ELASTICSEARCH_SECRET_TIMEOUT_SECONDS:-300}"
 ELASTICSEARCH_SECRET_POLL_SECONDS="${ELASTICSEARCH_SECRET_POLL_SECONDS:-5}"
+EXTRA_VALUES_FILES="${EXTRA_VALUES_FILES:-}"
 
 # Paths
 SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
@@ -118,6 +119,20 @@ require_cmd mktemp
 require_cmd sleep
 
 # Input checks
+set --
+set -f
+old_ifs="$IFS"
+IFS='
+'
+for values_file in $EXTRA_VALUES_FILES; do
+    if [ ! -f "$values_file" ]; then
+        echo "ERROR: Missing extra values file: $values_file" >&2
+        exit 1
+    fi
+    set -- "$@" -f "$values_file"
+done
+IFS="$old_ifs"
+
 if [ ! -f "$ENV_VALUES" ]; then
     echo "ERROR: Missing values file: $ENV_VALUES" >&2
     exit 1
@@ -169,9 +184,8 @@ case "$INSTALL_ISTIO" in
 esac
 
 # Extra helm arguments, kept in the positional parameters so they can be quoted safely.
-set --
 if [ -n "$ISTIO_REVISION" ]; then
-    set -- --set-string "smtpd.istio.revision=$ISTIO_REVISION"
+    set -- "$@" --set-string "smtpd.istio.revision=$ISTIO_REVISION"
 fi
 
 case "$INSTALL_ELASTICSEARCH" in

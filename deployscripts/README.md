@@ -186,6 +186,50 @@ bursts and an average-rate soak, leaving measured operational headroom and
 node-failure allowance. DLP-off comparisons need a compatible hook change first:
 the current EOD hook unconditionally imports and calls DLP.
 
+## Switch Halon Configuration
+
+Run `switch-halon-config.sh` from the repository root to switch the existing
+Halon release between the standard AKS configuration and the load-test overlay:
+
+```bash
+bash deployscripts/switch-halon-config.sh normal
+bash deployscripts/switch-halon-config.sh loadtest
+```
+
+**Lab use only: both commands delete ALL queued mail from every smtpd pod in
+the selected release, including held and deferred messages, without generating
+bounces.** Stop other SMTP senders first. The script displays the context,
+namespace, release and target mode, then requires you to type `DELETE`.
+Any other answer, including empty input, cancels before making changes.
+
+The wrapper defaults to `ISOLATION_MODE=subnet-nsg`; no environment prefix is
+needed. It verifies the cluster identity and the public TCP25 block on every
+node subnet. It stops the load-test generator when the harness is installed,
+checks that all expected smtpd replicas are Ready, clears their queues, and
+verifies that they are empty before applying the new configuration. Unreadable
+queues or cleanup timeout prevent the configuration switch.
+
+`normal` runs `install-aks.sh` without extra values files. `loadtest` applies
+`main/environments/aks-loadtest.yaml` and requires the idle harness and ready
+sinks. Both modes wait for smtpd and enabled dlpd rollouts, verify the effective
+routing settings, and check the SMTP banner from a sink pod when the harness
+exists. Both normal and load-test modes exclude inbound TCP25 from Istio capture
+through the shared `main/environments/aks-test.yaml` settings.
+Post-upgrade verification failures do not automatically roll back the release.
+
+The script keeps the sinks, load-test namespace, node pool, monitoring resources
+and NSG rules. It does not start a load test. Keep the NSG safeguard until you
+have verified normal routing and SMTP connectivity; remove it manually only
+when ready. Re-establish the safeguard before switching back to load-test mode.
+If no harness exists, normal mode skips the banner check and asks you to verify
+connectivity from your own client.
+
+Optional overrides include `TARGET_CONTEXT`, `HALON_RELEASE`, `HALON_NAMESPACE`,
+`CLEAR_TIMEOUT_SECONDS` (default `120`) and `ROLLOUT_TIMEOUT` (default `600s`).
+The standard load-test overlay expects release and namespace `halon-loadtest`.
+Switching uses the current published chart, not a rollback to an older version;
+DLP remains enabled and clusterd remains disabled under the shared defaults.
+
 ## Stop and Remove
 
 Emergency stop (also works if the runner terminal is lost):

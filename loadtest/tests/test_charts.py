@@ -160,9 +160,10 @@ class ChartTests(unittest.TestCase):
 
     def test_isolation_is_opt_in(self):
         self.assertFalse(any(item["kind"] == "NetworkPolicy" for item in self.normal))
-        smtpd = resource(self.lab, "StatefulSet", "halon-smtpd")
-        annotations = smtpd["spec"]["template"]["metadata"]["annotations"]
-        self.assertEqual(annotations["traffic.sidecar.istio.io/excludeInboundPorts"], "25")
+        for documents in (self.normal, self.lab):
+            smtpd = resource(documents, "StatefulSet", "halon-smtpd")
+            annotations = smtpd["spec"]["template"]["metadata"]["annotations"]
+            self.assertEqual(annotations["traffic.sidecar.istio.io/excludeInboundPorts"], "25")
         policy = resource(self.lab, "NetworkPolicy", "halon-smtpd-loadtest-egress")["spec"]
         for rule in policy["egress"]:
             if any(port["port"] in (25, 2525) for port in rule["ports"]):

@@ -6,9 +6,6 @@ global:
       enabled: true
 
 smtpd:
-  istio:
-    excludeInboundPorts: "25"
-
   replicaCount: 2
   relayOverride:
     enabled: true

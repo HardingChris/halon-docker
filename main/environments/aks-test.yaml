@@ -93,8 +93,7 @@ smtpd:
     # Outbound SMTP bypasses the sidecar so delivery egresses directly via the smtpdpool
     # subnet and its NAT gateway, keeping a stable outbound IP for reputation.
     excludeOutboundPorts: "25"
-    # Uncomment if Istio inbound protocol sniffing interferes with inbound SMTP.
-    # excludeInboundPorts: "25"
+    excludeInboundPorts: "25"
 
 web:
   image:

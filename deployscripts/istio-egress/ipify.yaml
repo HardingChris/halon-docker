@@ -1,0 +1,101 @@
+apiVersion: networking.istio.io/v1
+kind: ServiceEntry
+metadata:
+  name: ipify
+  namespace: aks-istio-egress
+spec:
+  exportTo:
+    - "*"
+  hosts:
+    - api.ipify.org
+  location: MESH_EXTERNAL
+  ports:
+    - number: 443
+      name: tls
+      protocol: TLS
+  resolution: DNS
+---
+apiVersion: networking.istio.io/v1
+kind: Gateway
+metadata:
+  name: ipify-egress
+  namespace: aks-istio-egress
+spec:
+  selector:
+    istio: ipify-egress
+  servers:
+    - port:
+        number: 443
+        name: tls-ipify
+        protocol: TLS
+      hosts:
+        - api.ipify.org
+      tls:
+        mode: PASSTHROUGH
+---
+apiVersion: networking.istio.io/v1
+kind: DestinationRule
+metadata:
+  name: ipify-egress
+  namespace: aks-istio-egress
+spec:
+  exportTo:
+    - "*"
+  host: ipify-egress.aks-istio-egress.svc.cluster.local
+  trafficPolicy:
+    tls:
+      mode: DISABLE
+---
+apiVersion: networking.istio.io/v1
+kind: VirtualService
+metadata:
+  name: ipify-via-egress
+  namespace: aks-istio-egress
+spec:
+  exportTo:
+    - "*"
+  hosts:
+    - api.ipify.org
+  gateways:
+    - mesh
+    - ipify-egress
+  tls:
+    - match:
+        - gateways:
+            - mesh
+          sourceNamespace: default
+          sourceLabels:
+            app.kubernetes.io/instance: halon
+            app.kubernetes.io/name: smtpd
+          port: 443
+          sniHosts:
+            - api.ipify.org
+      route:
+        - destination:
+            host: ipify-egress.aks-istio-egress.svc.cluster.local
+            port:
+              number: 443
+    - match:
+        - gateways:
+            - ipify-egress
+          port: 443
+          sniHosts:
+            - api.ipify.org
+      route:
+        - destination:
+            host: api.ipify.org
+            port:
+              number: 443
+---
+apiVersion: telemetry.istio.io/v1
+kind: Telemetry
+metadata:
+  name: ipify-egress-access-log
+  namespace: aks-istio-egress
+spec:
+  selector:
+    matchLabels:
+      istio: ipify-egress
+  accessLogging:
+    - providers:
+        - name: envoy

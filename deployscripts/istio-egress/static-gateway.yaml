@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: aks-istio-egress
+---
+apiVersion: egressgateway.kubernetes.azure.com/v1alpha1
+kind: StaticGatewayConfiguration
+metadata:
+  name: ipify-private-egress
+  namespace: aks-istio-egress
+spec:
+  gatewayNodepoolName: egresspool
+  provisionPublicIps: false
+  excludeCidrs:
+    - 10.0.0.0/8
+    - 172.16.0.0/12
+    - 192.168.0.0/16
+    - 169.254.169.254/32
